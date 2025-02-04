@@ -1,3 +1,4 @@
+import { Toaster } from "@/components/ui/toaster";
 import HeroPage from "./HeroPage";
 import WalletProviderWrapper from "./WalletProviderWrapper";
 import ThemeProviderWrapper from "./ThemeProviderWrapper";
@@ -10,6 +11,7 @@ const Home = () => {
         <WalletProviderWrapper>
           <Header />
           <HeroPage />
+          <Toaster />
         </WalletProviderWrapper>
       </div>
     </ThemeProviderWrapper>

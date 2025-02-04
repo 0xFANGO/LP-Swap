@@ -5,6 +5,11 @@ export default {
   ],
   theme: {
   	extend: {
+			extend: {
+				borderColor: {
+					stroke: 'rgb(44 46 73 / var(--tw-border-opacity))',
+				},
+			},
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',

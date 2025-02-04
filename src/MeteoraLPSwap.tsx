@@ -2,20 +2,33 @@ import { useEffect, useState } from "react";
 import { motion, Variant } from "motion/react";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
-import { fetchPairInfo, PairInfo } from "./lib/utils/meteora";
+import { fetchPairInfo, getToken0Name, getToken1Name } from "./lib/utils/meteora";
 import { MagicCard } from "./components/ui/magic-card";
 import { useTheme } from "next-themes";
 import { useFetchMoneyDecimals } from "./lib/utils/meteora/money";
 import SwapComponent from "./SwapComponent";
+import { useMeteOraStore } from "./store";
+import { useToast } from "./hooks/use-toast";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import DLMM from "@meteora-ag/dlmm";
+import { PublicKey } from "@solana/web3.js";
 
 const MeteoraLPSwap = () => {
   const { theme } = useTheme();
-  const [pairHash, setpairHash] = useState("");
-  const [pairInfo, setPairInfo] = useState<PairInfo>();
-  const [tokenxDecimals, setTokenxDecimals] = useState<number>(0);
-  const [tokenyDecimals, setTokenyDecimals] = useState<number>(0);
+  const {
+    pairHash,
+    pairInfo,
+    setPairHash,
+    setPairInfo,
+    setTokenxDecimals,
+    setTokenyDecimals,
+    setDLMMPool,
+  } = useMeteOraStore((state) => state);
 
   const [pairLoading, setPairLoading] = useState(false);
+  const { connected } = useWallet();
+  const { connection } = useConnection();
+  const { toast } = useToast();
   const variants: {
     [key: string]: Variant;
   } = {
@@ -27,18 +40,7 @@ const MeteoraLPSwap = () => {
       transition: undefined,
     },
   };
-  const getToken0Name = () => {
-    if (!pairInfo?.name) {
-      return "";
-    }
-    return pairInfo?.name.split("-")[0];
-  };
-  const getToken1Name = () => {
-    if (!pairInfo?.name) {
-      return "";
-    }
-    return pairInfo?.name.split("-")[1];
-  };
+
   const { fetchDecimal } = useFetchMoneyDecimals();
   useEffect(() => {
     if (!pairInfo) {
@@ -50,8 +52,30 @@ const MeteoraLPSwap = () => {
     fetchDecimal(pairInfo.mint_y).then((res) => {
       setTokenyDecimals(res);
     });
-  }, [fetchDecimal, pairInfo?.mint_x, pairInfo?.mint_y]);
+  }, [pairHash]);
+  const handleConnectToPool = async () => {
+    if(!pairHash) {
+      return;
+    }
+    try {
+      const dlmmPool = await DLMM.create(connection, new PublicKey(pairHash), {
+        cluster: "mainnet-beta",
+      });
+      setDLMMPool(dlmmPool);
+    } catch(e) {
+      console.log("error", e);
+      toast({
+        title: "Can not connect to the pool",
+      })
+    }
+  }
   const handleSearchPair = async () => {
+    if (!connected) {
+      toast({
+        title: "Please connect your wallet",
+      });
+      return;
+    }
     if (!pairHash) {
       return;
     }
@@ -60,8 +84,12 @@ const MeteoraLPSwap = () => {
       const pairInfo = await fetchPairInfo({ pairHash });
       setPairInfo(pairInfo);
       console.log("🚀 ~ pairInfo:", pairInfo);
+      await handleConnectToPool();
       setPairLoading(false);
     } catch (error: any) {
+      toast({
+        title: "Can not find the pool information",
+      });
       console.log("🚀 ~ error:", error);
       setPairLoading(false);
     }
@@ -73,7 +101,7 @@ const MeteoraLPSwap = () => {
           className="w-[98%]"
           placeholder="Input Meteora DLMM Pool hash here"
           value={pairHash}
-          onChange={(e) => setpairHash(e.target.value)}
+          onChange={(e) => setPairHash(e.target.value)}
         />
         <Button type="submit" onClick={handleSearchPair}>
           <motion.div
@@ -95,11 +123,11 @@ const MeteoraLPSwap = () => {
               <div className="text-xl font-bold">Pool Info</div>
               <div className="mt-4 flex justify-start">
                 <div className="flex justify-center items-center mr-1">
-                  {getToken0Name()}
+                  {getToken0Name(pairInfo)}
                 </div>
                 <div className="mr-1">—</div>
                 <div className="flex justify-center items-center mr-5">
-                  {getToken1Name()}
+                  {getToken1Name(pairInfo)}
                 </div>
               </div>
               <div className="mt-2">
@@ -112,7 +140,7 @@ const MeteoraLPSwap = () => {
                 </span>
                 <span className="text-sm">
                   {parseFloat(String(pairInfo.current_price)).toFixed(2)}{" "}
-                  {getToken1Name()}/{getToken0Name()}
+                  {getToken1Name(pairInfo)}/{getToken0Name(pairInfo)}
                 </span>
               </div>
             </MagicCard>

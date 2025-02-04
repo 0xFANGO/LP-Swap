@@ -1,3 +1,5 @@
+import DLMM from "@meteora-ag/dlmm";
+
 export type PairInfo = {
   address: string;
   apr: number;
@@ -27,6 +29,19 @@ export type PairInfo = {
   today_fees: number;
   trade_volume_24h: number;
 };
+export const getToken0Name = (pairInfo: PairInfo | null) => {
+  if (!pairInfo?.name) {
+    return "";
+  }
+  return pairInfo?.name.split("-")[0];
+};
+export const getToken1Name = (pairInfo: PairInfo | null) => {
+  if (!pairInfo?.name) {
+    return "";
+  }
+  return pairInfo?.name.split("-")[1];
+};
+
 export async function fetchPairInfo(params: { pairHash: string }) {
   try {
     const res = await fetch(
@@ -46,6 +61,8 @@ export async function fetchPairInfo(params: { pairHash: string }) {
   }
 }
 
-export const getTokenURL = (tokenAddress: string) => {
-  return `https://wsrv.nl/?w=48&h=48&url=https%3A%2F%2Fraw.githubusercontent.com%2Fsolana-labs%2Ftoken-list%2Fmain%2Fassets%2Fmainnet%2F${tokenAddress}%2Flogo.png`;
-};
+export const getActiveBin = async(dlmmPool: DLMM) => {
+   // Get pool state
+   const activeBin = await dlmmPool.getActiveBin();
+   return activeBin;
+}
