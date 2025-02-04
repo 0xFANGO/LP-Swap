@@ -1,0 +1,1 @@
+export const CUSTOM_RPC0 = "https://mainnet.helius-rpc.com/?api-key=ef0660d9-eda3-412c-9f29-e4e8764803fe";
