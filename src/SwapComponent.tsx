@@ -12,6 +12,7 @@ import {
   getToken0Name,
   getToken1Name,
   quoteCreatePosition,
+  removePositionLiquidity,
 } from "./lib/utils/meteora";
 import { getTrueAmount, getWalletBalance } from "./lib/utils/meteora/money";
 import { Slider } from "@/components/ui/slider";
@@ -23,6 +24,7 @@ import {
 import { BN } from "bn.js";
 import { Keypair } from "@solana/web3.js";
 import { Skeleton } from "./components/ui/skeleton";
+import { Toaster, toast as sonnerToast } from "sonner";
 
 const SwapComponent: FC = () => {
   const [fromToken, setFromToken] = useState<"x" | "y">("x");
@@ -47,26 +49,28 @@ const SwapComponent: FC = () => {
   const [walletBalance, setWalletBalance] = useState(0);
   const [activeBin, setActiveBin] = useState<BinLiquidity | null>(null);
   const [binStep, setBinStep] = useState<number[]>([1]);
+  const [creatingPosition, setCreatingPosition] = useState(false);
+  const [popOverOpen, setPopOpen] = useState(false);
   const [limitPrice, setLimitPrice] = useState("");
   const [limitPercentage, setLimitPercentage] = useState("");
   const activePrice =
     fromToken === "x"
       ? activeBin?.pricePerToken
       : String(1 / Number(activeBin?.pricePerToken));
-  const getMinBinId = () => {
-    if (!activeBin || !dlmmPool || !binStep.length) {
+  const getMinBinId = (v: number[]) => {
+    if (!activeBin || !dlmmPool || !v.length) {
       return 0;
     }
     const minBinId =
-      fromToken === "x" ? activeBin.binId : activeBin.binId - binStep[0];
+      fromToken === "x" ? activeBin.binId : activeBin.binId - v[0];
     return minBinId;
   };
-  const getMaxBinId = () => {
-    if (!activeBin || !dlmmPool || !binStep.length) {
+  const getMaxBinId = (v: number[]) => {
+    if (!activeBin || !dlmmPool || !v.length) {
       return 0;
     }
     const maxBinId =
-      fromToken === "x" ? activeBin.binId + binStep[0] : activeBin.binId;
+      fromToken === "x" ? activeBin.binId + v[0] : activeBin.binId;
     return maxBinId;
   };
   useEffect(() => {
@@ -79,12 +83,13 @@ const SwapComponent: FC = () => {
     }, 3000); // 每3秒轮询一次
     return () => clearInterval(intervalId); // 清除定时器
   }, [dlmmPool]); // 每次 dlmmPool 改变时触发 useEffect
-  useEffect(() => {
-    if (!activeBin || !dlmmPool || !binStep.length) {
+  const handleChangeBinStep = async (v: number[]) => {
+    if (!activeBin || !dlmmPool || !v.length) {
       return;
     }
-    const minBin = getMinBinId();
-    const maxBin = getMaxBinId();
+    const minBin = getMinBinId(v);
+    const maxBin = getMaxBinId(v);
+    setBinStep(v);
     dlmmPool.getBinsBetweenLowerAndUpperBound(minBin, maxBin).then((res) => {
       const { bins } = res;
       if (!bins.length) {
@@ -123,6 +128,9 @@ const SwapComponent: FC = () => {
         );
       }
     });
+  };
+  useEffect(() => {
+    handleChangeBinStep(binStep);
   }, [activeBin, dlmmPool, binStep, fromToken]);
   const maxOutPut = parseFloat(
     String(Number(sellingAmount) * Number(limitPrice))
@@ -155,8 +163,8 @@ const SwapComponent: FC = () => {
     const res = await quoteCreatePosition(dlmmPool, {
       strategy: {
         strategyType: StrategyType.SpotImBalanced,
-        maxBinId: getMaxBinId(),
-        minBinId: getMinBinId(),
+        maxBinId: getMaxBinId(binStep),
+        minBinId: getMinBinId(binStep),
       },
     });
     setquoteCreateInfo(res);
@@ -179,39 +187,48 @@ const SwapComponent: FC = () => {
     if (!dlmmPool || !publicKey) {
       return;
     }
-    const totalXAmount =
-      fromToken === "x"
-        ? getTrueAmount(sellingAmount, tokenxDecimals)
-        : new BN(0);
-    const totalYAmount =
-      fromToken === "x"
-        ? new BN(0)
-        : getTrueAmount(sellingAmount, tokenyDecimals);
-    const positionKey = new Keypair();
-    const txHash = await createOneSidePositions(dlmmPool, {
-      connection,
-      positionPubKey: positionKey.publicKey,
-      user: publicKey,
-      totalXAmount,
-      totalYAmount,
-      strategy: {
-        strategyType: StrategyType.SpotImBalanced,
-        maxBinId: getMaxBinId(),
-        minBinId: getMinBinId(),
+    setPopOpen(false);
+    sonnerToast.promise(
+      async () => {
+        setCreatingPosition(true);
+        const totalXAmount =
+          fromToken === "x"
+            ? getTrueAmount(sellingAmount, tokenxDecimals)
+            : new BN(0);
+        const totalYAmount =
+          fromToken === "x"
+            ? new BN(0)
+            : getTrueAmount(sellingAmount, tokenyDecimals);
+        const positionKey = new Keypair();
+        const txHash = await createOneSidePositions(dlmmPool, {
+          connection,
+          positionPubKey: positionKey.publicKey,
+          user: publicKey,
+          totalXAmount,
+          totalYAmount,
+          strategy: {
+            strategyType: StrategyType.SpotImBalanced,
+            maxBinId: getMaxBinId(binStep),
+            minBinId: getMinBinId(binStep),
+          },
+        });
+
+        txHash.partialSign(positionKey);
+        const confirmation = await sendTransaction(txHash, connection);
+        await connection.confirmTransaction(confirmation);
+        setCreatingPosition(false);
       },
-    });
-    try {
-      txHash.partialSign(positionKey);
-      const confirmation = await sendTransaction(txHash, connection);
-      const confirmResult = await connection.confirmTransaction(confirmation);
-      console.log("confirmResult--", confirmResult);
-    } catch (e) {
-      console.log("Error confirming transaction:", e);
-    }
+      {
+        loading: "Creating position...",
+        success: "Position created!",
+        error: "Error creating position",
+      }
+    );
   };
 
   return (
     <div className="bg-[#1a1a2e] p-6 rounded-lg shadow-lg w-full">
+      <Toaster theme="dark" position="bottom-left" />
       <div className="mb-4 bg-black p-2 pb-6  relative">
         <div className="flex justify-between">
           <label className="block text-xs mb-2">Selling</label>
@@ -282,9 +299,7 @@ const SwapComponent: FC = () => {
           <div className="mt-5">
             <Slider
               value={binStep}
-              onValueChange={(v) => {
-                setBinStep(v);
-              }}
+              onValueChange={handleChangeBinStep}
               max={100}
               step={1}
               className="w-full"
@@ -300,7 +315,7 @@ const SwapComponent: FC = () => {
           {maxOutPut} {buyingTokenName}
         </div>
       </div>
-      <Popover>
+      <Popover open={popOverOpen} onOpenChange={setPopOpen}>
         <PopoverTrigger asChild>
           <Button
             disabled={swapDisabled}
@@ -314,7 +329,8 @@ const SwapComponent: FC = () => {
         <PopoverContent>
           <div className="text-lg">This will create positions</div>
           <div className="text-xs text-[#525269] mt-2">
-            Positions needed for {getMaxBinId() - getMinBinId()} bins
+            Positions needed for {getMaxBinId(binStep) - getMinBinId(binStep)}{" "}
+            bins
           </div>
           <div className="text-xs">
             {quoteCreateInfo.positionCount} Positions

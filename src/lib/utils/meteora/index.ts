@@ -1,4 +1,8 @@
-import DLMM, { StrategyParameters, TQuoteCreatePositionParams } from "@meteora-ag/dlmm";
+import DLMM, {
+  LbPosition,
+  StrategyParameters,
+  TQuoteCreatePositionParams,
+} from "@meteora-ag/dlmm";
 import { Connection, PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
 
@@ -77,14 +81,17 @@ export const quoteCreatePosition = async (
   return quote;
 };
 
-export const createOneSidePositions = async (dlmmPool: DLMM,params: {
-  connection: Connection;
-  user: PublicKey;
-  positionPubKey: PublicKey;
-  totalXAmount: BN,
-  totalYAmount: BN,
-  strategy: StrategyParameters
-}) => {
+export const createOneSidePositions = async (
+  dlmmPool: DLMM,
+  params: {
+    connection: Connection;
+    user: PublicKey;
+    positionPubKey: PublicKey;
+    totalXAmount: BN;
+    totalYAmount: BN;
+    strategy: StrategyParameters;
+  }
+) => {
   const { totalXAmount, positionPubKey, user, totalYAmount, strategy } = params;
   const createPositionTx =
     await dlmmPool.initializePositionAndAddLiquidityByStrategy({
@@ -95,4 +102,30 @@ export const createOneSidePositions = async (dlmmPool: DLMM,params: {
       strategy,
     });
   return createPositionTx;
+};
+
+export const removePositionLiquidity = async (
+  dlmmPool: DLMM,
+  params: {
+    positionPub: PublicKey;
+    userPub: PublicKey;
+    percentOfLiquidity: number;
+    shouldClaimAndClose: boolean;
+  }
+) => {
+  const { positionPub, userPub, percentOfLiquidity, shouldClaimAndClose } =
+    params;
+  const position = await dlmmPool.getPosition(positionPub);
+  // Remove Liquidity
+  const binIdsToRemove = position.positionData.positionBinData.map(
+    (bin) => bin.binId
+  );
+  const removeLiquidityTx = await dlmmPool.removeLiquidity({
+    position: positionPub,
+    user: userPub,
+    binIds: binIdsToRemove,
+    bps: new BN(100 * percentOfLiquidity), // 100% of liquidity
+    shouldClaimAndClose: shouldClaimAndClose, // should claim swap fee and close position together
+  });
+  return removeLiquidityTx;
 };
