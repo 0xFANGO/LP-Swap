@@ -1,4 +1,6 @@
-import DLMM from "@meteora-ag/dlmm";
+import DLMM, { StrategyParameters, TQuoteCreatePositionParams } from "@meteora-ag/dlmm";
+import { Connection, PublicKey } from "@solana/web3.js";
+import BN from "bn.js";
 
 export type PairInfo = {
   address: string;
@@ -61,8 +63,36 @@ export async function fetchPairInfo(params: { pairHash: string }) {
   }
 }
 
-export const getActiveBin = async(dlmmPool: DLMM) => {
-   // Get pool state
-   const activeBin = await dlmmPool.getActiveBin();
-   return activeBin;
-}
+export const getActiveBin = async (dlmmPool: DLMM) => {
+  // Get pool state
+  const activeBin = await dlmmPool.getActiveBin();
+  return activeBin;
+};
+// 创建仓位报价
+export const quoteCreatePosition = async (
+  dlmmPool: DLMM,
+  { strategy }: TQuoteCreatePositionParams
+) => {
+  const quote = await dlmmPool.quoteCreatePosition({ strategy });
+  return quote;
+};
+
+export const createOneSidePositions = async (dlmmPool: DLMM,params: {
+  connection: Connection;
+  user: PublicKey;
+  positionPubKey: PublicKey;
+  totalXAmount: BN,
+  totalYAmount: BN,
+  strategy: StrategyParameters
+}) => {
+  const { totalXAmount, positionPubKey, user, totalYAmount, strategy } = params;
+  const createPositionTx =
+    await dlmmPool.initializePositionAndAddLiquidityByStrategy({
+      positionPubKey: positionPubKey,
+      user,
+      totalXAmount,
+      totalYAmount,
+      strategy,
+    });
+  return createPositionTx;
+};

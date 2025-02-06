@@ -20,8 +20,7 @@ export const getWalletBalance = async ({
   if (isSol) {
     // 如果是原生 SOL，使用 getBalance 查询
     const balance = await connection.getBalance(publicKey);
-    console.log("SOL 余额:", balance / 1e9); // 将 Lamports 转换为 SOL
-    return balance / 1e9;
+    return balance / 1e9;  // 将 Lamports 转换为 SOL
   } else {
     // 如果是 SPL Token，使用 getTokenAccountsByOwner 查询
     const tokenMint = new PublicKey(mintAddress);
@@ -31,14 +30,14 @@ export const getWalletBalance = async ({
     });
 
     if (tokenAccounts.value.length === 0) {
-      console.log("该账户没有持有该 SPL Token");
+      // console.log("该账户没有持有该 SPL Token");
       return 0;
     }
 
     const tokenAccount = tokenAccounts.value[0];
     const balance = await connection.getTokenAccountBalance(tokenAccount.pubkey);
 
-    console.log("SPL Token 余额:", balance.value.uiAmount);
+    // console.log("SPL Token 余额:", balance.value.uiAmount);
     return balance.value.uiAmount || 0;
   }
 };
@@ -57,6 +56,14 @@ export const useFetchMoneyDecimals = () => {
   return {
     fetchDecimal
   }
+};
+
+export const getTrueAmount = (
+  amount: number | string,
+  decimals: number
+) => {
+  const factor = Math.pow(10, decimals);
+  return new BN(Number(amount) * factor);
 };
 
 export const formatMoney = (

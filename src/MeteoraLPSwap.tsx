@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { motion, Variant } from "motion/react";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
-import { fetchPairInfo, getToken0Name, getToken1Name } from "./lib/utils/meteora";
-import { MagicCard } from "./components/ui/magic-card";
-import { useTheme } from "next-themes";
+import {
+  fetchPairInfo,
+  getToken0Name,
+  getToken1Name,
+} from "./lib/utils/meteora";
 import { useFetchMoneyDecimals } from "./lib/utils/meteora/money";
 import SwapComponent from "./SwapComponent";
 import { useMeteOraStore } from "./store";
@@ -12,9 +14,10 @@ import { useToast } from "./hooks/use-toast";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import DLMM from "@meteora-ag/dlmm";
 import { PublicKey } from "@solana/web3.js";
+import { Forward, Loader } from "lucide-react";
+import { Card } from "./components/ui/card";
 
 const MeteoraLPSwap = () => {
-  const { theme } = useTheme();
   const {
     pairHash,
     pairInfo,
@@ -33,7 +36,7 @@ const MeteoraLPSwap = () => {
     [key: string]: Variant;
   } = {
     active: {
-      rotate: 90,
+      rotate: 360,
       transition: { duration: 0.5, repeat: Infinity },
     },
     inactive: {
@@ -52,9 +55,9 @@ const MeteoraLPSwap = () => {
     fetchDecimal(pairInfo.mint_y).then((res) => {
       setTokenyDecimals(res);
     });
-  }, [pairHash]);
+  }, [pairHash, pairInfo]);
   const handleConnectToPool = async () => {
-    if(!pairHash) {
+    if (!pairHash) {
       return;
     }
     try {
@@ -62,13 +65,13 @@ const MeteoraLPSwap = () => {
         cluster: "mainnet-beta",
       });
       setDLMMPool(dlmmPool);
-    } catch(e) {
+    } catch (e) {
       console.log("error", e);
       toast({
         title: "Can not connect to the pool",
-      })
+      });
     }
-  }
+  };
   const handleSearchPair = async () => {
     if (!connected) {
       toast({
@@ -103,12 +106,23 @@ const MeteoraLPSwap = () => {
           value={pairHash}
           onChange={(e) => setPairHash(e.target.value)}
         />
-        <Button type="submit" onClick={handleSearchPair}>
-          <motion.div
-            variants={variants}
-            className="bg-[#ff8861] w-5 h-5"
-            animate={pairLoading ? "active" : "inactive"}
-          ></motion.div>
+        <Button
+          variant="ghost"
+          className="mr-1"
+          type="submit"
+          onClick={handleSearchPair}
+        >
+          {pairLoading ? (
+            <motion.div
+              variants={variants}
+              className="text-[#ff8861]"
+              animate={pairLoading ? "active" : "inactive"}
+            >
+              <Loader className="w-5 h-5" />
+            </motion.div>
+          ) : (
+            <Forward className="text-[#ff8861] text-lg" />
+          )}
           Swap In This Pool
         </Button>
       </div>
@@ -116,10 +130,7 @@ const MeteoraLPSwap = () => {
         <div className="grid grid-cols-2 gap-2 gap-y-2 mt-4">
           <SwapComponent />
           <div className="grid grid-rows-2">
-            <MagicCard
-              className="p-6 cursor-pointer shadow-2xl"
-              gradientColor={theme === "dark" ? "#262626" : "#D9D9D955"}
-            >
+            <Card className="p-6 cursor-pointer shadow-2xl">
               <div className="text-xl font-bold">Pool Info</div>
               <div className="mt-4 flex justify-start">
                 <div className="flex justify-center items-center mr-1">
@@ -143,16 +154,13 @@ const MeteoraLPSwap = () => {
                   {getToken1Name(pairInfo)}/{getToken0Name(pairInfo)}
                 </span>
               </div>
-            </MagicCard>
-            <MagicCard
-              className="p-6 mt-4 cursor-pointer shadow-2xl"
-              gradientColor={theme === "dark" ? "#262626" : "#D9D9D955"}
-            >
+            </Card>
+            <Card className="p-6 mt-4 cursor-pointer shadow-2xl">
               <div className="text-xl font-bold">Your Positions</div>
               <div className="mt-4">
                 <div className="text-xl">No Positions Found</div>
               </div>
-            </MagicCard>
+            </Card>
           </div>
         </div>
       ) : null}

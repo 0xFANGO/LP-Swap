@@ -71,6 +71,8 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    --dark-muted: #1a1a2e;
+    --dark-muted-foreground: #e8f9ff;
   }
   * {
     @apply border-border;

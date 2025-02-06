@@ -3,13 +3,15 @@ import React from "react";
 
 interface DecimalInputProps {
   value: string;
-  onChange: (newValue: string) => void;
+  disabled?: boolean;
+  onChange?: (newValue: string) => void;
   className?: string;
 }
 
 const DecimalInput: React.FC<DecimalInputProps> = ({
   value,
   onChange,
+  disabled,
   className,
 }) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -31,13 +33,14 @@ const DecimalInput: React.FC<DecimalInputProps> = ({
     }
 
     // 调用外部传入的 onChange 函数来更新父组件的状态
-    onChange(inputValue);
+    onChange?.(inputValue);
   };
 
   return (
     <input
       type="text"
       value={value}
+      disabled={disabled}
       onChange={handleChange}
       className={cn(className)}
       placeholder="0.00"
