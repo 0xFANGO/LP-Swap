@@ -21,8 +21,8 @@ function LPSwap() {
         <BoxReveal boxColor={"#512da8"} duration={0.5}>
           <div className="mt-6">
             <p>
-              -&gt; Utilizes advanced v3 pool strategies to ensure low-cost,
-              zero-fee transactions and real-time liquidity adjustments.
+              -&gt; Utilizes advanced v3 pool strategies to ensure low-cost
+              transactions and real-time liquidity adjustments.
               <br />
               -&gt; Support Swapping in{" "}
               <a href="https://edge.meteora.ag/" className="text-[#ff8861]">
@@ -31,7 +31,7 @@ function LPSwap() {
             </p>
           </div>
         </BoxReveal>
-        <MeteoraLPSwap/>
+        <MeteoraLPSwap />
       </div>
     </div>
   );

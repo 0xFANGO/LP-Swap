@@ -16,6 +16,7 @@ import DLMM from "@meteora-ag/dlmm";
 import { PublicKey } from "@solana/web3.js";
 import { Forward, Loader } from "lucide-react";
 import { Card } from "./components/ui/card";
+import PositionInfo from "./PositionInfo";
 
 const MeteoraLPSwap = () => {
   const {
@@ -129,8 +130,8 @@ const MeteoraLPSwap = () => {
       {pairInfo ? (
         <div className="grid grid-cols-2 gap-2 gap-y-2 mt-4">
           <SwapComponent />
-          <div className="grid grid-rows-2">
-            <Card className="p-6 cursor-pointer shadow-2xl">
+          <div className="grid grid-rows-4">
+            <Card className="p-6 row-span-1 shadow-2xl">
               <div className="text-xl font-bold">Pool Info</div>
               <div className="mt-4 flex justify-start">
                 <div className="flex justify-center items-center mr-1">
@@ -155,10 +156,10 @@ const MeteoraLPSwap = () => {
                 </span>
               </div>
             </Card>
-            <Card className="p-6 mt-4 cursor-pointer shadow-2xl">
+            <Card className="p-6 mt-4 row-span-3 shadow-2xl">
               <div className="text-xl font-bold">Your Positions</div>
               <div className="mt-4">
-                <div className="text-xl">No Positions Found</div>
+                <PositionInfo />
               </div>
             </Card>
           </div>

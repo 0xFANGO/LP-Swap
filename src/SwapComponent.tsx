@@ -49,7 +49,6 @@ const SwapComponent: FC = () => {
   const [walletBalance, setWalletBalance] = useState(0);
   const [activeBin, setActiveBin] = useState<BinLiquidity | null>(null);
   const [binStep, setBinStep] = useState<number[]>([1]);
-  const [creatingPosition, setCreatingPosition] = useState(false);
   const [popOverOpen, setPopOpen] = useState(false);
   const [limitPrice, setLimitPrice] = useState("");
   const [limitPercentage, setLimitPercentage] = useState("");
@@ -190,7 +189,7 @@ const SwapComponent: FC = () => {
     setPopOpen(false);
     sonnerToast.promise(
       async () => {
-        setCreatingPosition(true);
+        useMeteOraStore.setState({ creatingPosition: true });
         const totalXAmount =
           fromToken === "x"
             ? getTrueAmount(sellingAmount, tokenxDecimals)
@@ -216,7 +215,7 @@ const SwapComponent: FC = () => {
         txHash.partialSign(positionKey);
         const confirmation = await sendTransaction(txHash, connection);
         await connection.confirmTransaction(confirmation);
-        setCreatingPosition(false);
+        useMeteOraStore.setState({ creatingPosition: false });
       },
       {
         loading: "Creating position...",

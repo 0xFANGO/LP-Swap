@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { PairInfo } from './lib/utils/meteora';
-import DLMM from '@meteora-ag/dlmm';
+import DLMM, { LbPosition } from '@meteora-ag/dlmm';
 
 interface MeteOraSwapState {
   pairHash: string;
@@ -9,12 +9,15 @@ interface MeteOraSwapState {
   tokenyDecimals: number;
   dlmmPool: DLMM | null;
   sellingAmount: string;
+  userPositions: LbPosition[];
+  creatingPosition: boolean;
   setPairHash: (pairHash: string) => void;
   setPairInfo: (pairInfo: PairInfo) => void;
   setTokenxDecimals: (tokenxDecimals: number) => void;
   setTokenyDecimals: (tokenyDecimals: number) => void;
   setSellingAmount: (sellingAmount: string) => void;
   setDLMMPool: (dlmmPool: DLMM) => void;
+  setUserPositions: (userPositions: LbPosition[]) => void;
 }
 
 export const useMeteOraStore = create<MeteOraSwapState>((set) => ({
@@ -24,10 +27,13 @@ export const useMeteOraStore = create<MeteOraSwapState>((set) => ({
   dlmmPool: null,
   tokenyDecimals: 0,
   sellingAmount: "",
+  userPositions: [],
+  creatingPosition: false,
   setDLMMPool: (dlmmPool: DLMM) => set({ dlmmPool }),
   setSellingAmount: (sellingAmount: string) => set({ sellingAmount }),
   setPairHash: (pairHash: string) => set({ pairHash }),
   setPairInfo: (pairInfo: PairInfo) => set({ pairInfo }),
   setTokenxDecimals: (tokenxDecimals: number) => set({ tokenxDecimals }),
   setTokenyDecimals: (tokenyDecimals: number) => set({ tokenyDecimals }),
+  setUserPositions: (userPositions: LbPosition[]) => set({ userPositions }),
 }))
