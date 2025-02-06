@@ -11,6 +11,7 @@ export default defineConfig({
       define: {
         global: "globalThis",
         process: "process",
+        Buffer: "Buffer",
       },
       plugins: [
         NodeGlobalsPolyfillPlugin({
@@ -23,6 +24,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      buffer: "buffer",
     },
+  },
+  define: {
+    'process.env': {},
   },
 });
