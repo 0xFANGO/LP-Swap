@@ -4,7 +4,9 @@ import App from './App';
 import './index.css';
 import { Buffer } from 'buffer';
 
-window.Buffer = Buffer;
+if (!window.Buffer) {
+  window.Buffer = Buffer;
+}
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
