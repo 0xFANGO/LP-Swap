@@ -3,8 +3,6 @@ import { defineConfig } from "vite";
 import { NodeGlobalsPolyfillPlugin } from "@esbuild-plugins/node-globals-polyfill";
 import react from "@vitejs/plugin-react";
 import path from "path";
-// @ts-nocheck
-import { Buffer } from "buffer";
 
 export default defineConfig({
   plugins: [react()],
