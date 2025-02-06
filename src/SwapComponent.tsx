@@ -12,7 +12,6 @@ import {
   getToken0Name,
   getToken1Name,
   quoteCreatePosition,
-  removePositionLiquidity,
 } from "./lib/utils/meteora";
 import { getTrueAmount, getWalletBalance } from "./lib/utils/meteora/money";
 import { Slider } from "@/components/ui/slider";

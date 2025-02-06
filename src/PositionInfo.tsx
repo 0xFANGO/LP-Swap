@@ -29,7 +29,7 @@ const PositionInfo = () => {
   const tokenYName = getToken1Name(pairInfo);
   const tokenxDecimals = useMeteOraStore((state) => state.tokenxDecimals);
   const tokenyDecimals = useMeteOraStore((state) => state.tokenyDecimals);
-  const { publicKey, sendTransaction, signAllTransactions } = useWallet();
+  const { publicKey, sendTransaction } = useWallet();
   const { connection } = useConnection();
   const [fetchingUser, setFetchingUser] = useState(false);
   const getUserPositions = async () => {

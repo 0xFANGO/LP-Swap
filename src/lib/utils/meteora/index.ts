@@ -1,5 +1,4 @@
 import DLMM, {
-  LbPosition,
   StrategyParameters,
   TQuoteCreatePositionParams,
 } from "@meteora-ag/dlmm";
