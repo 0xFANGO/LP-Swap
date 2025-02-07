@@ -209,13 +209,34 @@ const PositionInfo = () => {
     const tokenXName = getToken0Name(pairInfo);
     const sellingTokenAmount =
       position.positionData.sellingToken === tokenXName
-        ? Number(position.positionData.totalXAmount)
-        : Number(position.positionData.totalYAmount);
+        ? Number(position.positionData.totalXAmount) / 10 ** tokenxDecimals
+        : Number(position.positionData.totalYAmount) / 10 ** tokenyDecimals;
     const percentage =
       ((Number(position.positionData.sellingAmount) - sellingTokenAmount) /
         Number(position.positionData.sellingAmount)) *
       100;
     return `${percentage.toFixed(2)}%`;
+  };
+  const getMarketPrice = (position: UserPosition) => {
+    const { minPositionPrice, maxPositionPrice } = getPositionInfo(position);
+    if (!position.positionData.sellingAmount) {
+      return `${minPositionPrice} - ${maxPositionPrice}`;
+    }
+    if (position.positionData.sellingToken === tokenXName) {
+      return `${minPositionPrice} - ${maxPositionPrice}`;
+    }
+    return `${(1 / Number(maxPositionPrice)).toFixed(6)} - ${(
+      1 / Number(minPositionPrice)
+    ).toFixed(6)}`;
+  };
+  const getXYOrder = (position: UserPosition) => {
+    if (!position.positionData.sellingToken) {
+      return `${tokenYName}/${tokenXName}`;
+    }
+    if (position.positionData.sellingToken === tokenXName) {
+      return `${tokenYName}/${tokenXName}`;
+    }
+    return `${tokenXName}/${tokenYName}`;
   };
   const renderPositionInfo = () => {
     if (!dlmmPool) {
@@ -243,14 +264,8 @@ const PositionInfo = () => {
           className="max-h-96 overflow-y-auto"
         >
           {userPositions.map((position, index) => {
-            const {
-              minPositionPrice,
-              maxPositionPrice,
-              tokenXAmount,
-              tokenYAmount,
-              tokenXFee,
-              tokenYFee,
-            } = getPositionInfo(position);
+            const { tokenXAmount, tokenYAmount, tokenXFee, tokenYFee } =
+              getPositionInfo(position);
             return (
               <>
                 <AccordionItem
@@ -260,10 +275,10 @@ const PositionInfo = () => {
                   <AccordionTrigger className="items-start">
                     <div>
                       <div className="font-semibold">
-                        {minPositionPrice} - {maxPositionPrice}{" "}
-                        <span className="text-xs text-[#F5F5FF66]">
-                          {tokenYName}/{tokenXName}
-                        </span>
+                        {getMarketPrice(position)}{" "}
+                        <div className="text-xs text-[#F5F5FF66]">
+                          {getXYOrder(position)}
+                        </div>
                       </div>
 
                       <div className="text-xs mt-2 text-[#F5F5FF66]">
@@ -276,7 +291,8 @@ const PositionInfo = () => {
                             </div>
                             <div>
                               {" "}
-                              for {position.positionData.maxOutPut} {getBuyingTokenName(position)}
+                              for {position.positionData.maxOutPut}{" "}
+                              {getBuyingTokenName(position)}
                             </div>
                           </>
                         )}
@@ -309,11 +325,11 @@ const PositionInfo = () => {
                         <div className="text-[#F5F5FF66]">Current Balance</div>
                         <div>
                           <span className="font-semibold ">{tokenXAmount}</span>{" "}
-                          {getSellTokenName(position)}
+                          {tokenXName}
                         </div>
                         <div>
                           <span className="font-semibold ">{tokenYAmount}</span>{" "}
-                          {getBuyingTokenName(position)}
+                          {tokenYName}
                         </div>
                         <div className="text-[#F5F5FF66] flex items-center">
                           Unclaimed Fee
