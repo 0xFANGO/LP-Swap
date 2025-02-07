@@ -195,11 +195,6 @@ const PositionInfo = () => {
       Number(position.positionData.totalYAmount) === 0
     );
   };
-  const getSellTokenName = (position: UserPosition) => {
-    return position.positionData.sellingToken === tokenXName
-      ? tokenXName
-      : tokenYName;
-  };
   const getBuyingTokenName = (position: UserPosition) => {
     return position.positionData.sellingToken === tokenXName
       ? tokenYName
