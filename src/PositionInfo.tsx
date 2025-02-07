@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/accordion";
 
 import { useMeteOraStore, UserPosition } from "./store";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Button } from "./components/ui/button";
 import { LbPosition } from "@meteora-ag/dlmm";
 import {
