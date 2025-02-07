@@ -43,7 +43,7 @@ const SwapComponent: FC = () => {
   const tokenxDecimals = useMeteOraStore((state) => state.tokenxDecimals);
   const tokenyDecimals = useMeteOraStore((state) => state.tokenyDecimals);
   const pairInfo = useMeteOraStore((state) => state.pairInfo);
-  const { publicKey, sendTransaction, connected } = useWallet();
+  const { publicKey, sendTransaction } = useWallet();
   const dlmmPool = useMeteOraStore((state) => state.dlmmPool);
   const [walletBalance, setWalletBalance] = useState(0);
   const [activeBin, setActiveBin] = useState<BinLiquidity | null>(null);
@@ -55,20 +55,22 @@ const SwapComponent: FC = () => {
     fromToken === "x"
       ? activeBin?.pricePerToken
       : String(1 / Number(activeBin?.pricePerToken));
-  const getMinBinId = (v: number[]) => {
+  const getMinBinId = (v: number[],  actBin?: BinLiquidity) => {
     if (!activeBin || !dlmmPool || !v.length) {
       return 0;
     }
+    const active = actBin || activeBin;
     const minBinId =
-      fromToken === "x" ? activeBin.binId : activeBin.binId - v[0];
+      fromToken === "x" ? active.binId : active.binId - v[0];
     return minBinId;
   };
-  const getMaxBinId = (v: number[]) => {
+  const getMaxBinId = (v: number[], actBin?: BinLiquidity) => {
     if (!activeBin || !dlmmPool || !v.length) {
       return 0;
     }
+    const active = actBin || activeBin;
     const maxBinId =
-      fromToken === "x" ? activeBin.binId + v[0] : activeBin.binId;
+      fromToken === "x" ? active.binId + v[0] : active.binId;
     return maxBinId;
   };
   useEffect(() => {
@@ -138,15 +140,22 @@ const SwapComponent: FC = () => {
     if (!pairInfo || !publicKey) {
       return;
     }
-    const mintAddress = fromToken === "x" ? pairInfo.mint_x : pairInfo.mint_y;
-    getWalletBalance({
-      mintAddress,
-      publicKey,
-      connection,
-    }).then((res) => {
-      setWalletBalance(res);
-    });
-  }, [fromToken, pairInfo, connected]);
+    const fetchBalance = async () => {
+      const mintAddress = fromToken === "x" ? pairInfo.mint_x : pairInfo.mint_y;
+      const balance = await getWalletBalance({
+        mintAddress,
+        publicKey,
+        connection,
+      });
+      setWalletBalance(balance);
+    };
+
+    fetchBalance(); // Initial fetch
+
+    const intervalId = setInterval(fetchBalance, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(intervalId); // Cleanup on unmount
+  }, [fromToken, pairInfo, publicKey, connection]);
   const sellingTokenName =
     fromToken === "x" ? getToken0Name(pairInfo) : getToken1Name(pairInfo);
   const buyingTokenName =
@@ -189,6 +198,7 @@ const SwapComponent: FC = () => {
     sonnerToast.promise(
       async () => {
         useMeteOraStore.setState({ creatingPosition: true });
+        const actBin = await getActiveBin(dlmmPool);
         const totalXAmount =
           fromToken === "x"
             ? getTrueAmount(sellingAmount, tokenxDecimals)
@@ -206,14 +216,29 @@ const SwapComponent: FC = () => {
           totalYAmount,
           strategy: {
             strategyType: StrategyType.SpotImBalanced,
-            maxBinId: getMaxBinId(binStep),
-            minBinId: getMinBinId(binStep),
+            maxBinId: getMaxBinId(binStep, actBin),
+            minBinId: getMinBinId(binStep, actBin),
           },
         });
 
         txHash.partialSign(positionKey);
         const confirmation = await sendTransaction(txHash, connection);
         await connection.confirmTransaction(confirmation);
+        // 在创建仓位后，记录selling amount和要交换的最大amount
+        const positionMap = localStorage.getItem("positionMap") || "{}";
+        const positionMapObj: {
+          [key: string]: {
+            sellingAmount: string;
+            maxOutPut: string;
+            sellingToken: string;
+          }
+        } = JSON.parse(positionMap);
+        positionMapObj[positionKey.publicKey.toString()] = {
+          sellingAmount,
+          maxOutPut,
+          sellingToken: sellingTokenName,
+        };
+        localStorage.setItem("positionMap", JSON.stringify(positionMapObj));
         useMeteOraStore.setState({ creatingPosition: false });
       },
       {

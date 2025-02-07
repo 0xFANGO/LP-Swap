@@ -7,7 +7,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-import { useMeteOraStore } from "./store";
+import { useMeteOraStore, UserPosition } from "./store";
 import { useEffect, useState } from "react";
 import { Button } from "./components/ui/button";
 import { LbPosition } from "@meteora-ag/dlmm";
@@ -18,7 +18,14 @@ import {
 } from "./lib/utils/meteora";
 import { Transaction } from "@solana/web3.js";
 import { toast, Toaster } from "sonner";
-import { Search } from "lucide-react";
+import { Info, Search, TriangleAlert } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./components/ui/tooltip";
+import { Badge } from "./components/ui/badge";
 
 const PositionInfo = () => {
   const dlmmPool = useMeteOraStore((state) => state.dlmmPool);
@@ -31,15 +38,35 @@ const PositionInfo = () => {
   const tokenyDecimals = useMeteOraStore((state) => state.tokenyDecimals);
   const { publicKey, sendTransaction } = useWallet();
   const { connection } = useConnection();
-  const [fetchingUser, setFetchingUser] = useState(false);
   const getUserPositions = async () => {
     if (!dlmmPool || !publicKey) {
       return [];
     }
-    setFetchingUser(true);
     const positions = await dlmmPool.getPositionsByUserAndLbPair(publicKey);
-    useMeteOraStore.setState({ userPositions: positions.userPositions });
-    setFetchingUser(false);
+    const positionMap = localStorage.getItem("positionMap");
+    const positionMapObj = positionMap ? JSON.parse(positionMap) : {};
+    const formatPositions: UserPosition[] = positions.userPositions.map(
+      (position) => {
+        const additionPositionData =
+          positionMapObj[position.publicKey.toString()];
+        return {
+          ...position,
+          positionData: additionPositionData
+            ? {
+                ...additionPositionData,
+                ...position.positionData,
+              }
+            : position.positionData,
+        };
+      }
+    );
+    formatPositions.sort((a, b) => {
+      return (
+        a.positionData.positionBinData[0].binId -
+        b.positionData.positionBinData[0].binId
+      );
+    });
+    useMeteOraStore.setState({ userPositions: formatPositions });
   };
   const getPositionInfo = (position: LbPosition) => {
     const maxPositionPrice =
@@ -145,17 +172,7 @@ const PositionInfo = () => {
       );
     } catch (error) {
       // no liquidity to withdraw
-      toast.error((error as any).message, {
-        action: (
-          <Button
-            onClick={() => {
-              handleClaimAndClose(position);
-            }}
-          >
-            Claim&Close
-          </Button>
-        ),
-      });
+      toast.error((error as any).message);
     }
   };
 
@@ -163,9 +180,45 @@ const PositionInfo = () => {
     if (!creatingPosition) {
       getUserPositions();
     }
+
+    const intervalId = setInterval(() => {
+      if (!creatingPosition) {
+        getUserPositions();
+      }
+    }, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(intervalId); // Cleanup on unmount
   }, [dlmmPool, publicKey, creatingPosition]);
+  const isEmpty = (position: LbPosition) => {
+    return (
+      Number(position.positionData.totalXAmount) === 0 &&
+      Number(position.positionData.totalYAmount) === 0
+    );
+  };
+  const getSellTokenName = (position: UserPosition) => {
+    return position.positionData.sellingToken === tokenXName
+      ? tokenXName
+      : tokenYName;
+  };
+  const getBuyingTokenName = (position: UserPosition) => {
+    return position.positionData.sellingToken === tokenXName
+      ? tokenYName
+      : tokenXName;
+  };
+  const calculatePercent = (position: UserPosition) => {
+    const tokenXName = getToken0Name(pairInfo);
+    const sellingTokenAmount =
+      position.positionData.sellingToken === tokenXName
+        ? Number(position.positionData.totalXAmount)
+        : Number(position.positionData.totalYAmount);
+    const percentage =
+      ((Number(position.positionData.sellingAmount) - sellingTokenAmount) /
+        Number(position.positionData.sellingAmount)) *
+      100;
+    return `${percentage.toFixed(2)}%`;
+  };
   const renderPositionInfo = () => {
-    if (!dlmmPool || fetchingUser) {
+    if (!dlmmPool) {
       return <Skeleton className="w-full h-10" />;
     }
     if (userPositions.length === 0) {
@@ -175,14 +228,20 @@ const PositionInfo = () => {
             <Search />
           </div>
           <div className="text-lg font-semibold mt-2">No Positions Found</div>
-          <div className="text-sm text-[#8585a1] mt-2">You don't have any liquidities in this pool. </div>
+          <div className="text-sm text-[#8585a1] mt-2">
+            You don't have any liquidities in this pool.{" "}
+          </div>
         </div>
       );
     }
     return (
       <>
         <Toaster theme="dark" position="bottom-left" />
-        <Accordion type="single" collapsible>
+        <Accordion
+          type="single"
+          collapsible
+          className="max-h-96 overflow-y-auto"
+        >
           {userPositions.map((position, index) => {
             const {
               minPositionPrice,
@@ -193,69 +252,120 @@ const PositionInfo = () => {
               tokenYFee,
             } = getPositionInfo(position);
             return (
-              <AccordionItem value={`item-${index}`}>
-                <AccordionTrigger>
-                  <div>
-                    <div className="font-semibold">
-                      {minPositionPrice} - {maxPositionPrice}
-                    </div>
-                    <div className="text-xs text-[#F5F5FF66]">
-                      {tokenYName} per {tokenXName}
-                    </div>
-                  </div>
-                  {/* <div>
-                    <div className="font-semibold">67.3% SOL</div>
-                    <div className="font-semibold">22.7% USDC</div>
-                  </div> */}
-                </AccordionTrigger>
-                <AccordionContent className="max-h-40">
-                  <div className="grid grid-cols-2">
-                    <div className="col-span-1">
-                      <div className="text-[#F5F5FF66]">Current Balance</div>
-                      <div>
-                        <span className="font-semibold ">{tokenXAmount}</span>{" "}
-                        SOL
+              <>
+                <AccordionItem
+                  key={position.publicKey?.toString()}
+                  value={`item-${index}`}
+                >
+                  <AccordionTrigger className="items-start">
+                    <div>
+                      <div className="font-semibold">
+                        {minPositionPrice} - {maxPositionPrice}{" "}
+                        <span className="text-xs text-[#F5F5FF66]">
+                          {tokenYName}/{tokenXName}
+                        </span>
                       </div>
-                      <div>
-                        <span className="font-semibold ">{tokenYAmount}</span>{" "}
-                        USDC
-                      </div>
-                      <div className="text-[#F5F5FF66]">Unclaimed Fee</div>
-                      <div>
-                        <span className="font-semibold">{tokenXFee}</span> SOL
-                      </div>
-                      <div>
-                        <span className="font-semibold">{tokenYFee}</span> USDC
+
+                      <div className="text-xs mt-2 text-[#F5F5FF66]">
+                        {position.positionData.sellingAmount && (
+                          <>
+                            <div>
+                              {" "}
+                              Selling {position.positionData.sellingAmount}{" "}
+                              {position.positionData.sellingToken}
+                            </div>
+                            <div>
+                              {" "}
+                              for {position.positionData.maxOutPut} {getBuyingTokenName(position)}
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                     <div>
-                      <Button
-                        variant="secondary"
-                        onClick={() => {
-                          handleWithdraw(position, {
-                            percentOfLiquidity: 100,
-                            shouldClaimAndClose: false,
-                          });
-                        }}
-                      >
-                        Withdraw Liquidity
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="mt-2"
-                        onClick={() => {
-                          handleWithdraw(position, {
-                            percentOfLiquidity: 100,
-                            shouldClaimAndClose: true,
-                          });
-                        }}
-                      >
-                        Withdraw & Close
-                      </Button>
+                      {isEmpty(position) ? (
+                        <div className="flex items-start">
+                          <TriangleAlert className="mr-1 text-[#f2be00]" /> No
+                          Liquidity
+                        </div>
+                      ) : (
+                        position.positionData.sellingAmount && (
+                          <>
+                            <div className="font-semibold">
+                              {calculatePercent(position)}{" "}
+                              {position.positionData.sellingToken}
+                            </div>
+                            <Badge variant="secondary" className="mt-1">
+                              Swapped
+                            </Badge>
+                          </>
+                        )
+                      )}
                     </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
+                  </AccordionTrigger>
+                  <AccordionContent className="max-h-40">
+                    <div className="grid grid-cols-2">
+                      <div className="col-span-1">
+                        <div className="text-[#F5F5FF66]">Current Balance</div>
+                        <div>
+                          <span className="font-semibold ">{tokenXAmount}</span>{" "}
+                          {getSellTokenName(position)}
+                        </div>
+                        <div>
+                          <span className="font-semibold ">{tokenYAmount}</span>{" "}
+                          {getBuyingTokenName(position)}
+                        </div>
+                        <div className="text-[#F5F5FF66] flex items-center">
+                          Unclaimed Fee
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="w-4 h-4 ml-1" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div>
+                                  <span className="font-semibold">
+                                    {tokenXFee}
+                                  </span>{" "}
+                                  {tokenXName}
+                                </div>
+                                <div>
+                                  <span className="font-semibold">
+                                    {tokenYFee}
+                                  </span>{" "}
+                                  {tokenYName}
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      </div>
+                      <div>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            handleWithdraw(position, {
+                              percentOfLiquidity: 100,
+                              shouldClaimAndClose: false,
+                            });
+                          }}
+                        >
+                          Withdraw Liquidity
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          className="mt-2 text-[#AA84FF] bg-[#8756F53D]"
+                          onClick={() => {
+                            handleClaimAndClose(position);
+                          }}
+                        >
+                          Claim Fee & Close
+                        </Button>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </>
             );
           })}
         </Accordion>

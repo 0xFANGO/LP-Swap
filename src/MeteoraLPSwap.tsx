@@ -14,8 +14,7 @@ import { useToast } from "./hooks/use-toast";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import DLMM from "@meteora-ag/dlmm";
 import { PublicKey } from "@solana/web3.js";
-import { Forward, Loader } from "lucide-react";
-import { Card } from "./components/ui/card";
+import { ExternalLink, Forward, Loader } from "lucide-react";
 import PositionInfo from "./PositionInfo";
 
 const MeteoraLPSwap = () => {
@@ -128,25 +127,29 @@ const MeteoraLPSwap = () => {
         </Button>
       </div>
       {pairInfo ? (
-        <div className="grid grid-cols-2 gap-2 gap-y-2 mt-4">
-          <SwapComponent />
-          <div className="grid grid-rows-4">
-            <Card className="p-6 row-span-1 shadow-2xl">
-              <div className="text-xl font-bold">Pool Info</div>
-              <div className="mt-4 flex justify-start">
+        <>
+          <div className="grid grid-cols-2 gap-2 gap-y-2 mt-4">
+            <SwapComponent />
+            <div className="bg-[#1a1a2e] p-6 rounded-lg shadow-lg w-full">
+              <div className="mt-2 font-bold text-xl flex justify-start items-center">
                 <div className="flex justify-center items-center mr-1">
                   {getToken0Name(pairInfo)}
                 </div>
                 <div className="mr-1">—</div>
-                <div className="flex justify-center items-center mr-5">
+                <div className="flex justify-center items-center mr-1">
                   {getToken1Name(pairInfo)}
                 </div>
+                <ExternalLink
+                  className="w-4 h-4 cursor-pointer hover:text-[#FF8861]"
+                  onClick={() =>
+                    window.open(
+                      `https://edge.meteora.ag/dlmm/${pairHash}`,
+                      "_blank"
+                    )
+                  }
+                />
               </div>
-              <div className="mt-2">
-                <span className="text-[#8585a1] text-sm mr-5">bin step</span>
-                <span className="text-sm">{pairInfo.bin_step}</span>
-              </div>
-              <div className="mt-2">
+              {/* <div className="mt-2">
                 <span className="text-[#8585a1] text-sm mr-5">
                   current price
                 </span>
@@ -154,16 +157,13 @@ const MeteoraLPSwap = () => {
                   {parseFloat(String(pairInfo.current_price)).toFixed(2)}{" "}
                   {getToken1Name(pairInfo)}/{getToken0Name(pairInfo)}
                 </span>
-              </div>
-            </Card>
-            <Card className="p-6 mt-4 row-span-3 shadow-2xl">
-              <div className="text-xl font-bold">Your Positions</div>
-              <div className="mt-4">
+              </div> */}
+              <div className="mt-1">
                 <PositionInfo />
               </div>
-            </Card>
+            </div>
           </div>
-        </div>
+        </>
       ) : null}
     </div>
   );
