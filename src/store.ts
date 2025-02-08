@@ -46,7 +46,7 @@ export const useMeteOraStore = create<MeteOraSwapState>((set) => ({
   sellingAmount: "",
   userPositions: [],
   creatingPosition: false,
-  alertAtPercent: 90,
+  alertAtPercent: 100,
   autoAlertAndRemove: true,
   setDLMMPool: (dlmmPool: DLMM) => set({ dlmmPool }),
   setSellingAmount: (sellingAmount: string) => set({ sellingAmount }),

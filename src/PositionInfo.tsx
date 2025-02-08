@@ -159,25 +159,23 @@ const PositionInfo = () => {
     if (!dlmmPool || !publicKey) {
       return;
     }
-
+    withdrawingPositionMap.current[position.publicKey.toString()] = true;
     const tx = (await removePositionLiquidity(dlmmPool, {
       positionPub: position.publicKey,
       userPub: publicKey,
       percentOfLiquidity,
       shouldClaimAndClose,
     })) as Transaction;
-    toast.promise(
-      async () => {
-        const confirmation = await sendTransaction(tx, connection);
-        await connection.confirmTransaction(confirmation);
-        getUserPositions();
-      },
-      {
-        loading: "Withdrawing...",
-        success: "Liquidity Withdrawn",
-        error: "Error Withdrawing Liquidity",
-      }
-    );
+    try {
+      toast("Withdrawing...");
+      const confirmation = await sendTransaction(tx, connection);
+      await connection.confirmTransaction(confirmation);
+      getUserPositions();
+      toast.success("Liquidity Withdrawn");
+    } catch (e: any) {
+      withdrawingPositionMap.current[position.publicKey.toString()] = false;
+      toast.error("Error Withdrawing Liquidity", e.message);
+    }
   };
 
   useEffect(() => {
@@ -188,23 +186,16 @@ const PositionInfo = () => {
           const percent = calculatePercent(position);
           const isWithdrawing =
             withdrawingPositionMap.current[position.publicKey.toString()];
+
           if (
             autoAlertAndRemove &&
             percent >= alertAtPercent &&
             !isWithdrawing
           ) {
-            withdrawingPositionMap.current[position.publicKey.toString()] =
-              true;
-            try {
-              await handleWithdraw(position, {
-                percentOfLiquidity: 100,
-                shouldClaimAndClose: false,
-              });
-            } catch (e) {
-              toast.error((e as any).message);
-              withdrawingPositionMap.current[position.publicKey.toString()] =
-                false;
-            }
+            await handleWithdraw(position, {
+              percentOfLiquidity: 100,
+              shouldClaimAndClose: false,
+            });
           }
         }
       }
@@ -279,6 +270,7 @@ const PositionInfo = () => {
         </div>
       );
     }
+
     return (
       <>
         <Toaster theme="dark" position="bottom-left" />
@@ -386,20 +378,10 @@ const PositionInfo = () => {
                         <Button
                           variant="outline"
                           onClick={() => {
-                            try {
-                              withdrawingPositionMap.current[
-                                position.publicKey.toString()
-                              ] = true;
-                              handleWithdraw(position, {
-                                percentOfLiquidity: 100,
-                                shouldClaimAndClose: false,
-                              });
-                            } catch (e) {
-                              toast.error((e as any).message);
-                              withdrawingPositionMap.current[
-                                position.publicKey.toString()
-                              ] = false;
-                            }
+                            handleWithdraw(position, {
+                              percentOfLiquidity: 100,
+                              shouldClaimAndClose: false,
+                            });
                           }}
                         >
                           Withdraw Liquidity

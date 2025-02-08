@@ -29,6 +29,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./components/ui/tooltip";
+// import { PoolDataTable } from "./PoolDataTable";
 
 const MeteoraLPSwap = () => {
   const {
@@ -141,6 +142,7 @@ const MeteoraLPSwap = () => {
           Swap In This Pool
         </Button>
       </div>
+      {/* <PoolDataTable /> */}
       {pairInfo ? (
         <>
           <div className="grid grid-cols-2 gap-2 gap-y-2 mt-4">
