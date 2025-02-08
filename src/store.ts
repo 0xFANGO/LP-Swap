@@ -26,6 +26,8 @@ interface MeteOraSwapState {
   sellingAmount: string;
   userPositions: UserPosition[];
   creatingPosition: boolean;
+  alertAtPercent: number;
+  autoAlertAndRemove: boolean;
   setPairHash: (pairHash: string) => void;
   setPairInfo: (pairInfo: PairInfo) => void;
   setTokenxDecimals: (tokenxDecimals: number) => void;
@@ -44,6 +46,8 @@ export const useMeteOraStore = create<MeteOraSwapState>((set) => ({
   sellingAmount: "",
   userPositions: [],
   creatingPosition: false,
+  alertAtPercent: 90,
+  autoAlertAndRemove: true,
   setDLMMPool: (dlmmPool: DLMM) => set({ dlmmPool }),
   setSellingAmount: (sellingAmount: string) => set({ sellingAmount }),
   setPairHash: (pairHash: string) => set({ pairHash }),

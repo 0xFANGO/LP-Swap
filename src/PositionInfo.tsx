@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/accordion";
 
 import { useMeteOraStore, UserPosition } from "./store";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Button } from "./components/ui/button";
 import { LbPosition } from "@meteora-ag/dlmm";
 import {
@@ -36,6 +36,13 @@ const PositionInfo = () => {
   const tokenYName = getToken1Name(pairInfo);
   const tokenxDecimals = useMeteOraStore((state) => state.tokenxDecimals);
   const tokenyDecimals = useMeteOraStore((state) => state.tokenyDecimals);
+  const alertAtPercent = useMeteOraStore((state) => state.alertAtPercent);
+  const autoAlertAndRemove = useMeteOraStore(
+    (state) => state.autoAlertAndRemove
+  );
+  const withdrawingPositionMap = useRef<{
+    [key: string]: boolean;
+  }>({});
   const { publicKey, sendTransaction } = useWallet();
   const { connection } = useConnection();
   const getUserPositions = async () => {
@@ -67,6 +74,7 @@ const PositionInfo = () => {
       );
     });
     useMeteOraStore.setState({ userPositions: formatPositions });
+    return formatPositions;
   };
   const getPositionInfo = (position: LbPosition) => {
     const maxPositionPrice =
@@ -151,44 +159,65 @@ const PositionInfo = () => {
     if (!dlmmPool || !publicKey) {
       return;
     }
-    try {
-      const tx = (await removePositionLiquidity(dlmmPool, {
-        positionPub: position.publicKey,
-        userPub: publicKey,
-        percentOfLiquidity,
-        shouldClaimAndClose,
-      })) as Transaction;
-      toast.promise(
-        async () => {
-          const confirmation = await sendTransaction(tx, connection);
-          await connection.confirmTransaction(confirmation);
-          getUserPositions();
-        },
-        {
-          loading: "Withdrawing...",
-          success: "Liquidity Withdrawn",
-          error: "Error Withdrawing Liquidity",
-        }
-      );
-    } catch (error) {
-      // no liquidity to withdraw
-      toast.error((error as any).message);
-    }
+
+    const tx = (await removePositionLiquidity(dlmmPool, {
+      positionPub: position.publicKey,
+      userPub: publicKey,
+      percentOfLiquidity,
+      shouldClaimAndClose,
+    })) as Transaction;
+    toast.promise(
+      async () => {
+        const confirmation = await sendTransaction(tx, connection);
+        await connection.confirmTransaction(confirmation);
+        getUserPositions();
+      },
+      {
+        loading: "Withdrawing...",
+        success: "Liquidity Withdrawn",
+        error: "Error Withdrawing Liquidity",
+      }
+    );
   };
 
   useEffect(() => {
-    if (!creatingPosition) {
-      getUserPositions();
-    }
-
-    const intervalId = setInterval(() => {
+    const intervalId = setInterval(async () => {
       if (!creatingPosition) {
-        getUserPositions();
+        const positions = await getUserPositions();
+        for (const position of positions) {
+          const percent = calculatePercent(position);
+          const isWithdrawing =
+            withdrawingPositionMap.current[position.publicKey.toString()];
+          if (
+            autoAlertAndRemove &&
+            percent >= alertAtPercent &&
+            !isWithdrawing
+          ) {
+            withdrawingPositionMap.current[position.publicKey.toString()] =
+              true;
+            try {
+              await handleWithdraw(position, {
+                percentOfLiquidity: 100,
+                shouldClaimAndClose: false,
+              });
+            } catch (e) {
+              toast.error((e as any).message);
+              withdrawingPositionMap.current[position.publicKey.toString()] =
+                false;
+            }
+          }
+        }
       }
     }, 3000); // Poll every 3 seconds
 
     return () => clearInterval(intervalId); // Cleanup on unmount
-  }, [dlmmPool, publicKey, creatingPosition]);
+  }, [
+    dlmmPool,
+    publicKey,
+    creatingPosition,
+    autoAlertAndRemove,
+    alertAtPercent,
+  ]);
   const isEmpty = (position: LbPosition) => {
     return (
       Number(position.positionData.totalXAmount) === 0 &&
@@ -210,7 +239,7 @@ const PositionInfo = () => {
       ((Number(position.positionData.sellingAmount) - sellingTokenAmount) /
         Number(position.positionData.sellingAmount)) *
       100;
-    return `${percentage.toFixed(2)}%`;
+    return percentage;
   };
   const getMarketPrice = (position: UserPosition) => {
     const { minPositionPrice, maxPositionPrice } = getPositionInfo(position);
@@ -267,10 +296,12 @@ const PositionInfo = () => {
                   key={position.publicKey?.toString()}
                   value={`item-${index}`}
                 >
-                  <AccordionTrigger className="items-start">
+                  <AccordionTrigger className="items-start hover:no-underline cursor-default">
                     <div>
                       <div className="font-semibold">
-                        {getMarketPrice(position)}{" "}
+                        <div className="flex items-center">
+                          {getMarketPrice(position)}{" "}
+                        </div>
                         <div className="text-xs text-[#F5F5FF66]">
                           {getXYOrder(position)}
                         </div>
@@ -303,7 +334,7 @@ const PositionInfo = () => {
                         position.positionData.sellingAmount && (
                           <>
                             <div className="font-semibold">
-                              {calculatePercent(position)}{" "}
+                              {calculatePercent(position).toFixed(2)}%{" "}
                               {position.positionData.sellingToken}
                             </div>
                             <Badge variant="secondary" className="mt-1">
@@ -355,10 +386,20 @@ const PositionInfo = () => {
                         <Button
                           variant="outline"
                           onClick={() => {
-                            handleWithdraw(position, {
-                              percentOfLiquidity: 100,
-                              shouldClaimAndClose: false,
-                            });
+                            try {
+                              withdrawingPositionMap.current[
+                                position.publicKey.toString()
+                              ] = true;
+                              handleWithdraw(position, {
+                                percentOfLiquidity: 100,
+                                shouldClaimAndClose: false,
+                              });
+                            } catch (e) {
+                              toast.error((e as any).message);
+                              withdrawingPositionMap.current[
+                                position.publicKey.toString()
+                              ] = false;
+                            }
                           }}
                         >
                           Withdraw Liquidity
