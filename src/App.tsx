@@ -3,17 +3,24 @@ import HeroPage from "./HeroPage";
 import WalletProviderWrapper from "./WalletProviderWrapper";
 import ThemeProviderWrapper from "./ThemeProviderWrapper";
 import Header from "./Header";
+import { Provider } from "./components/ui/provider";
+import MeteoraLPSwap from "./MeteoraLPSwap";
 
 const Home = () => {
   return (
     <ThemeProviderWrapper>
-      <div className="bg-[#140f1c] h-full">
-        <WalletProviderWrapper>
-          <Header />
-          <HeroPage />
-          <Toaster />
-        </WalletProviderWrapper>
-      </div>
+      <Provider>
+        <div className="h-full">
+          <WalletProviderWrapper>
+            <Header />
+            <div className="flex max-w-3xl m-auto flex-col items-start justify-start h-full">
+              <HeroPage />
+              <MeteoraLPSwap />
+            </div>
+            <Toaster />
+          </WalletProviderWrapper>
+        </div>
+      </Provider>
     </ThemeProviderWrapper>
   );
 };

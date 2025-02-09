@@ -1,30 +1,6 @@
-import * as React from "react"
-import {
-  ColumnDef,
-  ColumnFiltersState,
-  SortingState,
-  VisibilityState,
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from "@tanstack/react-table"
-import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react"
-
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
+import * as React from "react";
+import { Box, ChevronDown, ChevronRight } from "lucide-react";
+import { EmptyState, VStack } from "@chakra-ui/react";
 import {
   Table,
   TableBody,
@@ -32,279 +8,235 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
+import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
+import { Skeleton } from "./components/ui/skeleton";
 
-const data: Payment[] = [
-  {
-    id: "m5gr84i9",
-    amount: 316,
-    status: "success",
-    email: "ken99@yahoo.com",
-  },
-  {
-    id: "3u1reuv4",
-    amount: 242,
-    status: "success",
-    email: "Abe45@gmail.com",
-  },
-  {
-    id: "derv1ws0",
-    amount: 837,
-    status: "processing",
-    email: "Monserrat44@gmail.com",
-  },
-  {
-    id: "5kma53ae",
-    amount: 874,
-    status: "success",
-    email: "Silas22@gmail.com",
-  },
-  {
-    id: "bhqecj4p",
-    amount: 721,
-    status: "failed",
-    email: "carmella@hotmail.com",
-  },
-]
-
-export type Payment = {
-  id: string
-  amount: number
-  status: "pending" | "processing" | "success" | "failed"
-  email: string
+interface Pool {
+  id: string;
+  name: string;
+  poolCount: string;
+  tvl: string;
+  volume: string;
+  feeRatio: string;
+  recommendedPools?: RecommendedPool[];
 }
 
-export const columns: ColumnDef<Payment>[] = [
+interface RecommendedPool {
+  binStep: number;
+  fee: string;
+  tvl: string;
+  volume: string;
+  feeRatio: string;
+  name: string;
+}
+
+const data: Pool[] = [
   {
-    id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
+    id: "1",
+    name: "SOL-USDC",
+    poolCount: "75 pools",
+    tvl: "$40,136,932.14",
+    volume: "$124,208,545.00",
+    feeRatio: "0.03%",
+    recommendedPools: [
+      {
+        name: "SOL-USDC",
+        binStep: 10,
+        fee: "0.02%",
+        tvl: "$2,759,985.70",
+        volume: "$42,508,332.00",
+        feeRatio: "< 0.01%",
+      },
+      {
+        name: "SOL-USDC",
+        binStep: 10,
+        fee: "0.10%",
+        tvl: "$9,825,949.14",
+        volume: "$35,821,420.00",
+        feeRatio: "0.01%",
+      },
+      {
+        name: "SOL-USDC",
+        binStep: 20,
+        fee: "0.20%",
+        tvl: "$11,592,978.70",
+        volume: "$9,105,107.00",
+        feeRatio: "< 0.01%",
+      },
+    ],
   },
   {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => (
-      <div className="capitalize">{row.getValue("status")}</div>
-    ),
+    id: "2",
+    name: "TRUMP-USDC",
+    poolCount: "54 pools",
+    tvl: "$444,558,711.88",
+    volume: "$76,364,012.00",
+    feeRatio: "0.03%",
   },
-  {
-    accessorKey: "email",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Email
-          <ArrowUpDown />
-        </Button>
-      )
-    },
-    cell: ({ row }) => <div className="lowercase">{row.getValue("email")}</div>,
-  },
-  {
-    accessorKey: "amount",
-    header: () => <div className="text-right">Amount</div>,
-    cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("amount"))
+];
 
-      // Format the amount as a dollar amount
-      const formatted = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-      }).format(amount)
+interface Props {
+  className?: string;
+}
+export default function PoolDataTable({ className }: Props) {
+  const [openItems, setOpenItems] = React.useState<Set<string>>(new Set());
 
-      return <div className="text-right font-medium">{formatted}</div>
-    },
-  },
-  {
-    id: "actions",
-    enableHiding: false,
-    cell: ({ row }) => {
-      const payment = row.original
-
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(payment.id)}
-            >
-              Copy payment ID
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>View customer</DropdownMenuItem>
-            <DropdownMenuItem>View payment details</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )
-    },
-  },
-]
-
-export function PoolDataTable() {
-  const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  )
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({})
-  const [rowSelection, setRowSelection] = React.useState({})
-
-  const table = useReactTable({
-    data,
-    columns,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
-    state: {
-      sorting,
-      columnFilters,
-      columnVisibility,
-      rowSelection,
-    },
-  })
-
+  const toggleItem = (id: string) => {
+    const newOpenItems = new Set(openItems);
+    if (newOpenItems.has(id)) {
+      newOpenItems.delete(id);
+    } else {
+      newOpenItems.add(id);
+    }
+    setOpenItems(newOpenItems);
+  };
+  const renderLoading = () => {
+    return (
+      <>
+        {[1, 2, 3].map((index) => (
+          <TableRow key={index} className="border-0">
+            <TableCell className="border-0">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-4 w-4" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-6 w-16 rounded-full" />
+              </div>
+            </TableCell>
+            <TableCell className="border-0">
+              <Skeleton className="h-4 w-24 mr-auto" />
+            </TableCell>
+            <TableCell className="border-0">
+              <Skeleton className="h-4 w-28 mr-auto" />
+            </TableCell>
+            <TableCell className="border-0">
+              <Skeleton className="h-4 w-16 mr-auto" />
+            </TableCell>
+          </TableRow>
+        ))}
+      </>
+    );
+  };
   return (
-    <div className="w-full">
-      <div className="flex items-center py-4">
-        <Input
-          placeholder="Filter emails..."
-          value={(table.getColumn("email")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("email")?.setFilterValue(event.target.value)
-          }
-          className="max-w-sm"
-        />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto">
-              Columns <ChevronDown />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {table
-              .getAllColumns()
-              .filter((column) => column.getCanHide())
-              .map((column) => {
-                return (
-                  <DropdownMenuCheckboxItem
-                    key={column.id}
-                    className="capitalize"
-                    checked={column.getIsVisible()}
-                    onCheckedChange={(value) =>
-                      column.toggleVisibility(!!value)
-                    }
-                  >
-                    {column.id}
-                  </DropdownMenuCheckboxItem>
-                )
-              })}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  )
-                })}
+    <Tabs defaultValue="Meteora">
+      <TabsList className={cn("w-40 flex items-center mt-2")}>
+        <TabsTrigger value="Meteora" className="w-full flex items-center">
+          {" "}
+          <img src="/meteora.svg" className="w-6 h-6" />
+          Meteora
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="Meteora">
+        <div className={cn("rounded-md bg-gray-950 text-white", className)}>
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-gray-900 border-0">
+                <TableHead className="w-[300px] border-0">Pool</TableHead>
+                <TableHead className="text-left border-0">TVL</TableHead>
+                <TableHead className="text-left border-0">24H Vol</TableHead>
+                <TableHead className="text-left border-0 pr-4">
+                  Fee/TVL
+                </TableHead>
               </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
+            </TableHeader>
+            <TableBody>
+              {data?.length ? (
+                <>
+                  {data.map((pool) => (
+                    <React.Fragment key={pool.id}>
+                      <TableRow
+                        className={cn(
+                          "cursor-pointer hover:bg-gray-900 transition-colors border-0",
+                          openItems.has(pool.id) && "bg-gray-900"
+                        )}
+                        onClick={() => toggleItem(pool.id)}
+                      >
+                        <TableCell className="font-medium border-0">
+                          <div className="flex items-center gap-2">
+                            {openItems.has(pool.id) ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )}
+                            <span>{pool.name}</span>
+                            <span className="ml-2 rounded-full bg-gray-800 px-2 py-1 text-xs">
+                              {pool.poolCount}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-left border-0">
+                          {pool.tvl}
+                        </TableCell>
+                        <TableCell className="text-left border-0">
+                          {pool.volume}
+                        </TableCell>
+                        <TableCell className="text-left border-0 pr-4">
+                          {pool.feeRatio}
+                        </TableCell>
+                      </TableRow>
+                      {openItems.has(pool.id) && pool.recommendedPools && (
+                        <>
+                          {pool.recommendedPools.map((recommended, index) => (
+                            <TableRow
+                              key={index}
+                              className="bg-[#101216] hover:bg-gray-800/50 transition-colors border-0"
+                            >
+                              <TableCell className="border-0">
+                                <div className="flex items-center gap-2 pl-8">
+                                  <div>{recommended.name}</div>
+                                  <div>
+                                    <span className="text-gray-400">
+                                      Bin Step
+                                    </span>{" "}
+                                    {recommended.binStep}
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-400">Fee</span>{" "}
+                                    {recommended.fee}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-left border-0">
+                                {recommended.tvl}
+                              </TableCell>
+                              <TableCell className="text-left border-0">
+                                {recommended.volume}
+                              </TableCell>
+                              <TableCell className="text-left border-0 pr-4">
+                                {recommended.feeRatio}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </>
                       )}
-                    </TableCell>
+                    </React.Fragment>
                   ))}
+                </>
+              ) : (
+                <TableRow className="border-0">
+                  <TableCell colSpan={24} className="pb-0 border-0">
+                    <EmptyState.Root size="lg">
+                      <EmptyState.Content>
+                        <EmptyState.Indicator>
+                          <Box />
+                        </EmptyState.Indicator>
+                        <VStack textAlign="center">
+                          <EmptyState.Title>No pools found</EmptyState.Title>
+                          <EmptyState.Description>
+                            Try refreshing the page to see if any newly created
+                            pools have been added to the list.
+                          </EmptyState.Description>
+                        </VStack>
+                      </EmptyState.Content>
+                    </EmptyState.Root>
+                  </TableCell>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
+              )}
+            </TableBody>
+          </Table>
         </div>
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
+      </TabsContent>
+    </Tabs>
+  );
 }

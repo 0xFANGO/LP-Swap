@@ -29,7 +29,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./components/ui/tooltip";
-// import { PoolDataTable } from "./PoolDataTable";
+import PoolDataTable from "./PoolDataTable";
+import SearchInput from "./components/SearchInput";
 
 const MeteoraLPSwap = () => {
   const {
@@ -48,17 +49,6 @@ const MeteoraLPSwap = () => {
   const { connected } = useWallet();
   const { connection } = useConnection();
   const { toast } = useToast();
-  const variants: {
-    [key: string]: Variant;
-  } = {
-    active: {
-      rotate: 360,
-      transition: { duration: 0.5, repeat: Infinity },
-    },
-    inactive: {
-      transition: undefined,
-    },
-  };
 
   const { fetchDecimal } = useFetchMoneyDecimals();
   useEffect(() => {
@@ -116,33 +106,9 @@ const MeteoraLPSwap = () => {
   return (
     <div>
       <div className="flex w-full pl-2 items-center space-x-1 mt-6">
-        <Input
-          className="w-[98%]"
-          placeholder="Input Meteora DLMM Pool hash here"
-          value={pairHash}
-          onChange={(e) => setPairHash(e.target.value)}
-        />
-        <Button
-          variant="ghost"
-          className="mr-1"
-          type="submit"
-          onClick={handleSearchPair}
-        >
-          {pairLoading ? (
-            <motion.div
-              variants={variants}
-              className="text-[#ff8861]"
-              animate={pairLoading ? "active" : "inactive"}
-            >
-              <Loader className="w-5 h-5" />
-            </motion.div>
-          ) : (
-            <Forward className="text-[#ff8861] text-lg" />
-          )}
-          Swap In This Pool
-        </Button>
+        <SearchInput value={pairHash} onChange={setPairHash} onSearch={handleSearchPair} />
       </div>
-      {/* <PoolDataTable /> */}
+      <PoolDataTable className="pl-2 mt-2" />
       {pairInfo ? (
         <>
           <div className="grid grid-cols-2 gap-2 gap-y-2 mt-4">

@@ -4,6 +4,7 @@ import App from './App';
 import './index.css';
 import { Buffer } from 'buffer';
 
+
 if (!window.Buffer) {
   window.Buffer = Buffer;
 }
