@@ -35,6 +35,7 @@ import {
   PaginationRoot,
 } from "./components/ui/pagination";
 import SearchInput from "./components/SearchInput";
+import { useNavigate } from "react-router";
 
 interface Pool {
   id: string;
@@ -47,6 +48,7 @@ interface Pool {
 }
 
 interface MeteoraPairs {
+  address: string;
   binStep: number;
   feeRatio: string;
   tvl: string;
@@ -60,6 +62,7 @@ interface Props {
 export default function PoolDataTable({ className }: Props) {
   const [openItems, setOpenItems] = useState<Set<string>>(new Set());
   const [tableData, setTableData] = useState<Pool[]>([]);
+  const navigate = useNavigate();
   const [total, setTotal] = useState(0);
   const pairLoading = useMeteOraStore((state) => state.pairLoading);
   const queryParams = useMeteOraStore((state) => state.queryParams);
@@ -94,6 +97,7 @@ export default function PoolDataTable({ className }: Props) {
         poolPairs: pool.pairs?.map((pair) => ({
           name: pair.name,
           binStep: pair.bin_step,
+          address: pair.address,
           // feeRatio: pair.feeRatio,
           tvl: formatNumber(new BigNumber(pair.liquidity || "0")),
           volume: formatNumber(new BigNumber(pair.trade_volume_24h || "0")),
@@ -221,28 +225,31 @@ export default function PoolDataTable({ className }: Props) {
                       </TableCell>
                     </TableRow>
                   )}
-                  {getShowPairs(pool.poolPairs).map((recommended, index) => (
+                  {getShowPairs(pool.poolPairs).map((pair, index) => (
                     <TableRow
                       key={index}
                       className="bg-[#101216] hover:bg-gray-800/50 text-sm cursor-pointer transition-colors border-0"
+                      onClick={() => {
+                        navigate(`/meteora/${pair.address}`);
+                      }}
                     >
                       <TableCell className="border-0 w-[300px]">
                         <div className="flex items-center gap-2 pl-8">
-                          <div>{recommended.name}</div>
+                          <div>{pair.name}</div>
                           <div>
                             <span className="text-gray-400">Bin Step</span>{" "}
-                            {recommended.binStep}
+                            {pair.binStep}
                           </div>
                         </div>
                       </TableCell>
                       <TableCell className="text-left border-0">
-                        {recommended.tvl}
+                        {pair.tvl}
                       </TableCell>
                       <TableCell className="text-left border-0">
-                        {recommended.volume}
+                        {pair.volume}
                       </TableCell>
                       <TableCell className="text-left border-0 pr-4">
-                        {recommended.feeRatio}
+                        {pair.feeRatio}
                       </TableCell>
                     </TableRow>
                   ))}

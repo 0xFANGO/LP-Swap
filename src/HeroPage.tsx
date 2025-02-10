@@ -1,5 +1,4 @@
 import { BoxReveal } from "@/components/ui/box-reveal";
-import MeteoraLPSwap from "./MeteoraLPSwap";
 import { ExternalLink } from "lucide-react";
 import {
   Tooltip,
