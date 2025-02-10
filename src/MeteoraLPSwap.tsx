@@ -28,7 +28,7 @@ import {
   TooltipTrigger,
 } from "./components/ui/tooltip";
 import PoolDataTable from "./PoolDataTable";
-import SearchInput from "./components/SearchInput";
+
 
 const MeteoraLPSwap = () => {
   const {
@@ -105,15 +105,6 @@ const MeteoraLPSwap = () => {
   };
   return (
     <div className="mx-auto">
-      <div className="flex w-full pl-2 items-center space-x-1 mt-6">
-        <SearchInput
-          value={pairHash}
-          placeholder="Search by token name, mint address or pool address..."
-          onChange={() => {}}
-          className="max-w-4xl"
-          onSearch={handleSearchPair}
-        />
-      </div>
       <PoolDataTable className="pl-2 mt-2" />
       {pairInfo ? (
         <>

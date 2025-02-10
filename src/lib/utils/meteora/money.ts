@@ -89,3 +89,7 @@ export const formatMoney = (
 export const formatNumber = (num: BigNumber) => {
   return `$${num.toFormat(2)}`;
 };
+
+export const parseCurrency = (value: string): number => {
+  return parseFloat(value.replace(/[$,]/g, ""));
+};
