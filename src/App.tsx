@@ -4,16 +4,16 @@ import WalletProviderWrapper from "./WalletProviderWrapper";
 import ThemeProviderWrapper from "./ThemeProviderWrapper";
 import Header from "./Header";
 import { Provider } from "./components/ui/provider";
-import MeteoraLPSwap from "./MeteoraLPSwap";
+import MeteoraPools from "./MeteoraPools";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbSeparator,
-} from "./components/ui/breadcrumb";
+  BrowserRouter as Router,
+  Route,
+  Routes,
+} from "react-router";
+import MeteoraSwap from "./MeteoraSwap";
 
 const Home = () => {
+
   return (
     <ThemeProviderWrapper>
       <Provider>
@@ -21,21 +21,28 @@ const Home = () => {
           <WalletProviderWrapper>
             <Header />
             <div className="w-full max-w-7xl mx-auto px-16">
-              <Breadcrumb>
-                <BreadcrumbList>
-                  <BreadcrumbItem>
-                    <BreadcrumbLink href="/">Pools</BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator />
-                  <BreadcrumbItem>
-                    <BreadcrumbLink href="/docs/components">
-                      SOL-USDC
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
-              <HeroPage />
-              <MeteoraLPSwap />
+              <Router>
+                <Routes>
+                  <Route
+                    path="/"
+                    element={
+                      <>
+                        <HeroPage />
+                        <MeteoraPools />
+                      </>
+                    }
+                  />
+                  <Route
+                    path="/meteora/:poolId"
+                    element={
+                      <>
+                        <MeteoraSwap />
+                      </>
+                    }
+                  />
+                  {/* Add more routes here as needed */}
+                </Routes>
+              </Router>
             </div>
             <Toaster />
           </WalletProviderWrapper>

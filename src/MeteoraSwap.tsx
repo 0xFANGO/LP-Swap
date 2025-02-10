@@ -1,36 +1,43 @@
-import { useEffect } from "react";
-import { Input } from "./components/ui/input";
+import { ExternalLink, Info, Settings } from "lucide-react";
+import SwapComponent from "./SwapComponent";
 import {
   fetchPairInfo,
   getToken0Name,
   getToken1Name,
 } from "./lib/utils/meteora";
-import { useFetchMoneyDecimals } from "./lib/utils/meteora/money";
-import SwapComponent from "./SwapComponent";
-import { useMeteOraStore } from "./store";
-import { useToast } from "./hooks/use-toast";
-import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import DLMM from "@meteora-ag/dlmm";
-import { PublicKey } from "@solana/web3.js";
-import { ExternalLink, Info, Settings } from "lucide-react";
-import PositionInfo from "./PositionInfo";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "./components/ui/popover";
 import { Label } from "./components/ui/label";
-import { Switch } from "./components/ui/switch";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "./components/ui/tooltip";
-import PoolDataTable from "./PoolDataTable";
-import SearchInput from "./components/SearchInput";
+import { Switch } from "./components/ui/switch";
+import { Input } from "./components/ui/input";
+import PositionInfo from "./PositionInfo";
+import { useMeteOraStore } from "./store";
+import { useConnection } from "@solana/wallet-adapter-react";
+import { useToast } from "./hooks/use-toast";
+import DLMM from "@meteora-ag/dlmm";
+import { PublicKey } from "@solana/web3.js";
+import { useFetchMoneyDecimals } from "./lib/utils/meteora/money";
+import { useEffect, useState } from "react";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbSeparator,
+} from "./components/ui/breadcrumb";
+import { Skeleton } from "./components/ui/skeleton";
+import { useNavigate, useParams } from "react-router";
 
-const MeteoraLPSwap = () => {
+const MeteoraSwap = () => {
   const {
     pairInfo,
     setPairInfo,
@@ -40,11 +47,11 @@ const MeteoraLPSwap = () => {
     alertAtPercent,
     autoAlertAndRemove,
   } = useMeteOraStore((state) => state);
-  const pairHash = pairInfo?.address || "";
-  const { connected } = useWallet();
-  const { connection } = useConnection();
-  const { toast } = useToast();
+  const [fetching, setFetching] = useState(true);
   const { fetchDecimal } = useFetchMoneyDecimals();
+  const params = useParams();
+  const pairHash = params?.poolId || "";
+  const navigate = useNavigate();
   useEffect(() => {
     if (!pairInfo) {
       return;
@@ -56,6 +63,9 @@ const MeteoraLPSwap = () => {
       setTokenyDecimals(res);
     });
   }, [pairHash, pairInfo]);
+
+  const { connection } = useConnection();
+  const { toast } = useToast();
   const handleConnectToPool = async () => {
     if (!pairHash) {
       return;
@@ -73,49 +83,48 @@ const MeteoraLPSwap = () => {
     }
   };
   const handleSearchPair = async () => {
-    if (!connected) {
-      toast({
-        title: "Please connect your wallet",
-      });
-      return;
-    }
     if (!pairHash) {
       return;
     }
     try {
-      useMeteOraStore.setState({
-        pairLoading: true,
-      });
+      setFetching(true);
       const pairInfo = await fetchPairInfo({ pairHash });
       setPairInfo(pairInfo);
       console.log("🚀 ~ pairInfo:", pairInfo);
       await handleConnectToPool();
-      useMeteOraStore.setState({
-        pairLoading: false,
-      });
+      setFetching(false);
     } catch (error: any) {
       toast({
         title: "Can not find the pool information",
       });
       console.log("🚀 ~ error:", error);
-      useMeteOraStore.setState({
-        pairLoading: false,
-      });
+      setFetching(false);
     }
   };
-  return (
-    <div className="mx-auto">
-      <div className="flex w-full pl-2 items-center space-x-1 mt-6">
-        <SearchInput
-          value={pairHash}
-          placeholder="Search by token name, mint address or pool address..."
-          onChange={() => {}}
-          className="max-w-4xl"
-          onSearch={handleSearchPair}
-        />
-      </div>
-      <PoolDataTable className="pl-2 mt-2" />
-      {pairInfo ? (
+  const renderPairInfo = () => {
+    if (fetching) {
+      return (
+        <div className="space-y-4 mt-2">
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-1/4" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-4/5" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-1/4" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-4/5" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-1/4" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-4/5" />
+          </div>
+        </div>
+      );
+    }
+    if (pairInfo) {
+      return (
         <>
           <div className="grid grid-cols-2 gap-2 gap-y-2 mt-4">
             <SwapComponent />
@@ -227,24 +236,43 @@ const MeteoraLPSwap = () => {
                   </PopoverContent>
                 </Popover>
               </div>
-              {/* <div className="mt-2">
-                <span className="text-[#8585a1] text-sm mr-5">
-                  current price
-                </span>
-                <span className="text-sm">
-                  {parseFloat(String(pairInfo.current_price)).toFixed(2)}{" "}
-                  {getToken1Name(pairInfo)}/{getToken0Name(pairInfo)}
-                </span>
-              </div> */}
               <div className="mt-1">
                 <PositionInfo />
               </div>
             </div>
           </div>
         </>
-      ) : null}
-    </div>
+      );
+    }
+    return null;
+  };
+  useEffect(() => {
+    handleSearchPair();
+  }, [pairHash]);
+  return (
+    <>
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink
+              onClick={() => {
+                navigate(`/`);
+              }}
+            >
+              Pools
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink>
+              {fetching ? <Skeleton className="h-4 w-10" /> : pairInfo?.name}
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+      {renderPairInfo()}
+    </>
   );
 };
 
-export default MeteoraLPSwap;
+export default MeteoraSwap;

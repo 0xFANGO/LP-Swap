@@ -17,11 +17,13 @@ export type UserPosition = {
   version: PositionVersion;
 };
 
+export type SortKey = "volume" | "tvl" | "feetvlratio";
+
 export type QueryParams = {
   page: number;
   limit: number;
   search_term?: string;
-  sort_key?: "volume";
+  sort_key: SortKey;
   order_by?: "asc" | "desc";
   include_token_mints?: string[];
   include_pool_token_pairs?: string[];
@@ -40,6 +42,13 @@ interface MeteOraSwapState {
   creatingPosition: boolean;
   alertAtPercent: number;
   autoAlertAndRemove: boolean;
+  tableMetaData: {
+    total: number;
+    groups: {
+      name: string;
+      pairs: PairInfo[];
+    }[];
+  };
   setPairInfo: (pairInfo: PairInfo) => void;
   setTokenxDecimals: (tokenxDecimals: number) => void;
   setTokenyDecimals: (tokenyDecimals: number) => void;
@@ -52,10 +61,15 @@ export const useMeteOraStore = create<MeteOraSwapState>((set) => ({
   pairInfo: null,
   pairLoading: true,
   tokenxDecimals: 0,
+  tableMetaData: {
+    total: 0,
+    groups: [],
+  },
   queryParams: {
     page: 0,
     limit: 10,
     hide_low_tvl: 600,
+    sort_key: "volume",
   },
   dlmmPool: null,
   tokenyDecimals: 0,

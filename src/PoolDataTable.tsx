@@ -1,5 +1,17 @@
-import { Box, ChevronDown, ChevronRight } from "lucide-react";
-import { EmptyState, VStack } from "@chakra-ui/react";
+import {
+  Box,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsUpDown,
+  ChevronUp,
+} from "lucide-react";
+import {
+  EmptyState,
+  HStack,
+  PaginationPrevTrigger,
+  VStack,
+} from "@chakra-ui/react";
 import {
   Table,
   TableBody,
@@ -9,24 +21,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { Skeleton } from "./components/ui/skeleton";
-import { useMeteOraStore } from "./store";
+import { SortKey, useMeteOraStore } from "./store";
 import { useFetchMeteora } from "./hooks/use-fetchMeteora";
 import { useEffect, useState } from "react";
 import React from "react";
 import { PairInfo } from "./lib/utils/meteora";
 import BigNumber from "bignumber.js";
-import { formatNumber } from "./lib/utils/meteora/money";
+import { formatNumber, parseCurrency } from "./lib/utils/meteora/money";
 import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
+  PaginationItems,
+  PaginationNextTrigger,
+  PaginationRoot,
 } from "./components/ui/pagination";
+import SearchInput from "./components/SearchInput";
+import { useNavigate } from "react-router";
 
 interface Pool {
   id: string;
@@ -39,6 +48,7 @@ interface Pool {
 }
 
 interface MeteoraPairs {
+  address: string;
   binStep: number;
   feeRatio: string;
   tvl: string;
@@ -52,6 +62,8 @@ interface Props {
 export default function PoolDataTable({ className }: Props) {
   const [openItems, setOpenItems] = useState<Set<string>>(new Set());
   const [tableData, setTableData] = useState<Pool[]>([]);
+  const navigate = useNavigate();
+  const [total, setTotal] = useState(0);
   const pairLoading = useMeteOraStore((state) => state.pairLoading);
   const queryParams = useMeteOraStore((state) => state.queryParams);
   const { fetchMeteoraPools } = useFetchMeteora();
@@ -85,6 +97,7 @@ export default function PoolDataTable({ className }: Props) {
         poolPairs: pool.pairs?.map((pair) => ({
           name: pair.name,
           binStep: pair.bin_step,
+          address: pair.address,
           // feeRatio: pair.feeRatio,
           tvl: formatNumber(new BigNumber(pair.liquidity || "0")),
           volume: formatNumber(new BigNumber(pair.trade_volume_24h || "0")),
@@ -94,25 +107,52 @@ export default function PoolDataTable({ className }: Props) {
         })),
       };
     });
+    useMeteOraStore.setState({
+      tableMetaData: metaData,
+    });
+    setTotal(metaData?.total || 0);
     setTableData(formatData);
     console.log("🚀 ~ formatData:", formatData);
   };
   useEffect(() => {
     fetchAndFormatTableData();
   }, [queryParams]);
+  const [showAll, setShowAll] = useState(false);
   const toggleItem = (id: string) => {
-    const newOpenItems = new Set(openItems);
+    let newOpenItems = new Set(openItems);
     if (newOpenItems.has(id)) {
       newOpenItems.delete(id);
     } else {
-      newOpenItems.add(id);
+      newOpenItems = new Set([id]);
     }
+    setShowAll(false);
     setOpenItems(newOpenItems);
+  };
+  const getRecommendPairs = (pairs: MeteoraPairs[]) => {
+    const sortKey = queryParams.sort_key;
+    if (sortKey !== "feetvlratio") {
+      return pairs
+        .sort((a, b) => {
+          return parseCurrency(b[sortKey]) - parseCurrency(a[sortKey]);
+        })
+        .slice(0, 3);
+    }
+    return pairs
+      .sort((a, b) => {
+        return parseCurrency(b.feeRatio) - parseCurrency(a.feeRatio);
+      })
+      .slice(0, 3);
+  };
+  const getShowPairs = (pairs: MeteoraPairs[]) => {
+    if (showAll) {
+      return pairs;
+    }
+    return getRecommendPairs(pairs);
   };
   const renderLoading = () => {
     return (
       <>
-        {[1, 2, 3].map((index) => (
+        {[1, 2, 3, 4, 5, 6, 7, 8].map((index) => (
           <TableRow key={index} className="border-0">
             <TableCell className="border-0">
               <div className="flex items-center gap-2">
@@ -172,33 +212,84 @@ export default function PoolDataTable({ className }: Props) {
                   {pool.feeRatio}
                 </TableCell>
               </TableRow>
+
               {openItems.has(pool.id) && pool.poolPairs && (
                 <>
-                  {pool.poolPairs.map((recommended, index) => (
+                  {showAll ? null : (
+                    <TableRow className="bg-[#101216] hover:bg-gray-800/50 text-sm cursor-pointer transition-colors border-0">
+                      <TableCell
+                        colSpan={24}
+                        className="pl-8 font-semibold text-sm text-[#525269]"
+                      >
+                        Recommend Pools
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {getShowPairs(pool.poolPairs).map((pair, index) => (
                     <TableRow
                       key={index}
                       className="bg-[#101216] hover:bg-gray-800/50 text-sm cursor-pointer transition-colors border-0"
+                      onClick={() => {
+                        navigate(`/meteora/${pair.address}`);
+                      }}
                     >
                       <TableCell className="border-0 w-[300px]">
                         <div className="flex items-center gap-2 pl-8">
-                          <div>{recommended.name}</div>
+                          <div>{pair.name}</div>
                           <div>
                             <span className="text-gray-400">Bin Step</span>{" "}
-                            {recommended.binStep}
+                            {pair.binStep}
                           </div>
                         </div>
                       </TableCell>
                       <TableCell className="text-left border-0">
-                        {recommended.tvl}
+                        {pair.tvl}
                       </TableCell>
                       <TableCell className="text-left border-0">
-                        {recommended.volume}
+                        {pair.volume}
                       </TableCell>
                       <TableCell className="text-left border-0 pr-4">
-                        {recommended.feeRatio}
+                        {pair.feeRatio}
                       </TableCell>
                     </TableRow>
                   ))}
+                  {showAll ? (
+                    <>
+                      <TableRow
+                        onClick={() => {
+                          setShowAll(false);
+                        }}
+                        className="bg-[#101216] hover:bg-gray-800/50 text-sm cursor-pointer transition-colors border-0"
+                      >
+                        <TableCell
+                          colSpan={24}
+                          className="pl-8 font-semibold text-sm text-[#525269]"
+                        >
+                          <div className="flex items-center">
+                            Show Less <ChevronUp />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    </>
+                  ) : (
+                    <>
+                      <TableRow
+                        onClick={() => {
+                          setShowAll(true);
+                        }}
+                        className="bg-[#101216] hover:bg-gray-800/50 text-sm cursor-pointer transition-colors border-0"
+                      >
+                        <TableCell
+                          colSpan={24}
+                          className="pl-8 font-semibold text-sm text-[#525269] w-full"
+                        >
+                          <div className="mx-auto flex items-center">
+                            Show All <ChevronDown />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    </>
+                  )}
                 </>
               )}
             </React.Fragment>
@@ -227,46 +318,104 @@ export default function PoolDataTable({ className }: Props) {
       </TableRow>
     );
   };
+  const handleSort = (key: SortKey) => {
+    useMeteOraStore.setState({
+      queryParams: {
+        ...queryParams,
+        sort_key: key,
+      },
+    });
+  };
   return (
-    <div className={cn("rounded-md bg-gray-950 text-white", className)}>
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-gray-900 border-0">
-                <TableHead className="w-[300px] border-0">Pool</TableHead>
-                <TableHead className="text-left border-0">TVL</TableHead>
-                <TableHead className="text-left border-0">24H Vol</TableHead>
-                <TableHead className="text-left border-0 pr-4">
+    <>
+      <div className="flex w-full pl-2 items-center space-x-1 mt-6">
+        <SearchInput
+          value={queryParams.search_term || ""}
+          placeholder="Search by token name, mint address or pool address..."
+          onChange={(v) => {
+            useMeteOraStore.setState({
+              queryParams: {
+                ...queryParams,
+                search_term: v,
+              },
+            });
+          }}
+          isLoading={pairLoading}
+          className="max-w-4xl"
+          onSearch={fetchAndFormatTableData}
+        />
+      </div>
+      <div className={cn("rounded-md bg-gray-950 text-white", className)}>
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-gray-900 border-0">
+              <TableHead className="w-[300px] border-0">Pool</TableHead>
+              <TableHead className="text-left border-0">
+                <div className="flex items-center">
+                  <ChevronsUpDown
+                    onClick={() => {
+                      handleSort("tvl");
+                    }}
+                    className="h-4 w-4 cursor-pointer text-[#8585a1]"
+                  />
+                  TVL
+                </div>
+              </TableHead>
+              <TableHead className="text-left border-0">
+                <div className="flex items-center">
+                  <ChevronsUpDown
+                    onClick={() => {
+                      handleSort("volume");
+                    }}
+                    className="h-4 w-4 text-[#8585a1] cursor-pointer"
+                  />
+                  24H Vol
+                </div>
+              </TableHead>
+              <TableHead className="text-left border-0 pr-4">
+                <div className="flex items-center">
+                  <ChevronsUpDown
+                    onClick={() => {
+                      handleSort("feetvlratio");
+                    }}
+                    className="h-4 w-4 text-[#8585a1] cursor-pointer"
+                  />
                   24H Fee/TVL
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>{renderTableBody()}</TableBody>
-          </Table>
+                </div>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>{renderTableBody()}</TableBody>
+        </Table>
 
-          <Pagination className="justify-end pr-20">
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious href="#" />
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#">1</PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#" isActive>
-                  2
-                </PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#">3</PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationEllipsis />
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationNext href="#" />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
+        <PaginationRoot
+          count={total}
+          pageSize={10}
+          variant="solid"
+          page={queryParams.page + 1}
+          className="flex justify-end"
+          onPageChange={(e) => {
+            useMeteOraStore.setState({
+              queryParams: {
+                ...queryParams,
+                page: e.page - 1,
+              },
+            });
+          }}
+        >
+          <HStack>
+            <PaginationPrevTrigger>
+              {tableData.length ? <ChevronLeft /> : null}
+            </PaginationPrevTrigger>
+            <PaginationItems />
+            {tableData.length ? (
+              <PaginationNextTrigger>
+                <ChevronRight />
+              </PaginationNextTrigger>
+            ) : null}
+          </HStack>
+        </PaginationRoot>
+      </div>
+    </>
   );
 }
