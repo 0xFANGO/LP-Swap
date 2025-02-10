@@ -7,7 +7,7 @@ const Header: FC = () => {
   // const { theme, setTheme } = useTheme();
 
   return (
-    <header className="bg-[#130d17] text-white p-4 flex justify-end">
+    <header className="bg-[#130d17] text-white p-4 pr-16 flex justify-end">
       <WalletMultiButton />
     </header>
   );

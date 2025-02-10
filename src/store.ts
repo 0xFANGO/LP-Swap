@@ -17,9 +17,21 @@ export type UserPosition = {
   version: PositionVersion;
 };
 
+export type QueryParams = {
+  page: number;
+  limit: number;
+  search_term?: string;
+  sort_key?: "volume";
+  order_by?: "asc" | "desc";
+  include_token_mints?: string[];
+  include_pool_token_pairs?: string[];
+  hide_low_tvl: number;
+};
+
 interface MeteOraSwapState {
-  pairHash: string;
   pairInfo: PairInfo | null;
+  pairLoading: boolean;
+  queryParams: QueryParams;
   tokenxDecimals: number;
   tokenyDecimals: number;
   dlmmPool: DLMM | null;
@@ -28,7 +40,6 @@ interface MeteOraSwapState {
   creatingPosition: boolean;
   alertAtPercent: number;
   autoAlertAndRemove: boolean;
-  setPairHash: (pairHash: string) => void;
   setPairInfo: (pairInfo: PairInfo) => void;
   setTokenxDecimals: (tokenxDecimals: number) => void;
   setTokenyDecimals: (tokenyDecimals: number) => void;
@@ -38,9 +49,14 @@ interface MeteOraSwapState {
 }
 
 export const useMeteOraStore = create<MeteOraSwapState>((set) => ({
-  pairHash: "",
   pairInfo: null,
+  pairLoading: true,
   tokenxDecimals: 0,
+  queryParams: {
+    page: 0,
+    limit: 15,
+    hide_low_tvl: 600,
+  },
   dlmmPool: null,
   tokenyDecimals: 0,
   sellingAmount: "",
@@ -50,7 +66,6 @@ export const useMeteOraStore = create<MeteOraSwapState>((set) => ({
   autoAlertAndRemove: true,
   setDLMMPool: (dlmmPool: DLMM) => set({ dlmmPool }),
   setSellingAmount: (sellingAmount: string) => set({ sellingAmount }),
-  setPairHash: (pairHash: string) => set({ pairHash }),
   setPairInfo: (pairInfo: PairInfo) => set({ pairInfo }),
   setTokenxDecimals: (tokenxDecimals: number) => set({ tokenxDecimals }),
   setTokenyDecimals: (tokenyDecimals: number) => set({ tokenyDecimals }),

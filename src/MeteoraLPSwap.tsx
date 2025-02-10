@@ -1,6 +1,4 @@
-import { useEffect, useState } from "react";
-import { motion, Variant } from "motion/react";
-import { Button } from "./components/ui/button";
+import { useEffect } from "react";
 import { Input } from "./components/ui/input";
 import {
   fetchPairInfo,
@@ -14,7 +12,7 @@ import { useToast } from "./hooks/use-toast";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import DLMM from "@meteora-ag/dlmm";
 import { PublicKey } from "@solana/web3.js";
-import { ExternalLink, Forward, Info, Loader, Settings } from "lucide-react";
+import { ExternalLink, Info, Settings } from "lucide-react";
 import PositionInfo from "./PositionInfo";
 import {
   Popover,
@@ -34,9 +32,7 @@ import SearchInput from "./components/SearchInput";
 
 const MeteoraLPSwap = () => {
   const {
-    pairHash,
     pairInfo,
-    setPairHash,
     setPairInfo,
     setTokenxDecimals,
     setTokenyDecimals,
@@ -44,12 +40,10 @@ const MeteoraLPSwap = () => {
     alertAtPercent,
     autoAlertAndRemove,
   } = useMeteOraStore((state) => state);
-
-  const [pairLoading, setPairLoading] = useState(false);
+  const pairHash = pairInfo?.address || "";
   const { connected } = useWallet();
   const { connection } = useConnection();
   const { toast } = useToast();
-
   const { fetchDecimal } = useFetchMoneyDecimals();
   useEffect(() => {
     if (!pairInfo) {
@@ -89,24 +83,36 @@ const MeteoraLPSwap = () => {
       return;
     }
     try {
-      setPairLoading(true);
+      useMeteOraStore.setState({
+        pairLoading: true,
+      });
       const pairInfo = await fetchPairInfo({ pairHash });
       setPairInfo(pairInfo);
       console.log("🚀 ~ pairInfo:", pairInfo);
       await handleConnectToPool();
-      setPairLoading(false);
+      useMeteOraStore.setState({
+        pairLoading: false,
+      });
     } catch (error: any) {
       toast({
         title: "Can not find the pool information",
       });
       console.log("🚀 ~ error:", error);
-      setPairLoading(false);
+      useMeteOraStore.setState({
+        pairLoading: false,
+      });
     }
   };
   return (
-    <div>
+    <div className="mx-auto">
       <div className="flex w-full pl-2 items-center space-x-1 mt-6">
-        <SearchInput value={pairHash} onChange={setPairHash} onSearch={handleSearchPair} />
+        <SearchInput
+          value={pairHash}
+          placeholder="Search by token name, mint address or pool address..."
+          onChange={() => {}}
+          className="max-w-4xl"
+          onSearch={handleSearchPair}
+        />
       </div>
       <PoolDataTable className="pl-2 mt-2" />
       {pairInfo ? (

@@ -5,6 +5,13 @@ import ThemeProviderWrapper from "./ThemeProviderWrapper";
 import Header from "./Header";
 import { Provider } from "./components/ui/provider";
 import MeteoraLPSwap from "./MeteoraLPSwap";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbSeparator,
+} from "./components/ui/breadcrumb";
 
 const Home = () => {
   return (
@@ -13,7 +20,20 @@ const Home = () => {
         <div className="h-full">
           <WalletProviderWrapper>
             <Header />
-            <div className="flex max-w-3xl m-auto flex-col items-start justify-start h-full">
+            <div className="w-full max-w-7xl mx-auto px-16">
+              <Breadcrumb>
+                <BreadcrumbList>
+                  <BreadcrumbItem>
+                    <BreadcrumbLink href="/">Pools</BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbLink href="/docs/components">
+                      SOL-USDC
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
               <HeroPage />
               <MeteoraLPSwap />
             </div>

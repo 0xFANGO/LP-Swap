@@ -10,7 +10,7 @@ import {
 
 function LPSwap() {
   return (
-    <div className="max-w-3xl pt-1">
+    <div className="pt-1 mx-auto">
       <BoxReveal boxColor={"#5046e6"} duration={0.5}>
         <p className="text-[3.5rem] font-semibold">
           LP Swap<span className="text-[#512da8]">.</span>
