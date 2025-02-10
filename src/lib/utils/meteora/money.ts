@@ -1,26 +1,26 @@
 import { useConnection } from "@solana/wallet-adapter-react";
 import { Connection, PublicKey } from "@solana/web3.js";
+import BigNumber from "bignumber.js";
 import BN from "bn.js";
 
-const SOL_MINT = "So11111111111111111111111111111111111111112"
+const SOL_MINT = "So11111111111111111111111111111111111111112";
 
 export const getWalletBalance = async ({
   mintAddress,
   connection,
-  publicKey
+  publicKey,
 }: {
   mintAddress: string;
   connection: Connection;
   publicKey: PublicKey;
 }) => {
- 
   // 判断是否为 SOL 代币（即原生代币）
   const isSol = mintAddress === SOL_MINT;
 
   if (isSol) {
     // 如果是原生 SOL，使用 getBalance 查询
     const balance = await connection.getBalance(publicKey);
-    return balance / 1e9;  // 将 Lamports 转换为 SOL
+    return balance / 1e9; // 将 Lamports 转换为 SOL
   } else {
     // 如果是 SPL Token，使用 getTokenAccountsByOwner 查询
     const tokenMint = new PublicKey(mintAddress);
@@ -35,7 +35,9 @@ export const getWalletBalance = async ({
     }
 
     const tokenAccount = tokenAccounts.value[0];
-    const balance = await connection.getTokenAccountBalance(tokenAccount.pubkey);
+    const balance = await connection.getTokenAccountBalance(
+      tokenAccount.pubkey
+    );
 
     // console.log("SPL Token 余额:", balance.value.uiAmount);
     return balance.value.uiAmount || 0;
@@ -52,16 +54,13 @@ export const useFetchMoneyDecimals = () => {
       return 0;
     }
     return (res.value.data as any).parsed.info.decimals;
-  }
+  };
   return {
-    fetchDecimal
-  }
+    fetchDecimal,
+  };
 };
 
-export const getTrueAmount = (
-  amount: number | string,
-  decimals: number
-) => {
+export const getTrueAmount = (amount: number | string, decimals: number) => {
   const factor = Math.pow(10, decimals);
   return new BN(Number(amount) * factor);
 };
@@ -86,4 +85,11 @@ export const formatMoney = (
   // 格式化成小数形式（保留 9 位小数）
   const formattedAmount = parseFloat(result.toString()).toFixed(fractionDigits);
   return formattedAmount;
+};
+export const formatNumber = (num: BigNumber) => {
+  return `$${num.toFormat(2)}`;
+};
+
+export const parseCurrency = (value: string): number => {
+  return parseFloat(value.replace(/[$,]/g, ""));
 };

@@ -33,6 +33,14 @@ export type PairInfo = {
   reward_mint_y: string;
   today_fees: number;
   trade_volume_24h: number;
+  fee_tvl_ratio: {
+    min_30: number;
+    hour_1: number;
+    hour_2: number;
+    hour_4: number;
+    hour_12: number;
+    hour_24: number;
+  };
 };
 export const getToken0Name = (pairInfo: PairInfo | null) => {
   if (!pairInfo?.name) {
