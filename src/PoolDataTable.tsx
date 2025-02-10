@@ -228,16 +228,7 @@ export default function PoolDataTable({ className }: Props) {
     );
   };
   return (
-    <Tabs defaultValue="Meteora">
-      <TabsList className={cn("w-40 flex items-center mt-2")}>
-        <TabsTrigger value="Meteora" className="w-full flex items-center">
-          {" "}
-          <img src="/meteora.svg" className="w-6 h-6" />
-          Meteora
-        </TabsTrigger>
-      </TabsList>
-      <TabsContent value="Meteora">
-        <div className={cn("rounded-md bg-gray-950 text-white", className)}>
+    <div className={cn("rounded-md bg-gray-950 text-white", className)}>
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-gray-900 border-0">
@@ -277,7 +268,5 @@ export default function PoolDataTable({ className }: Props) {
             </PaginationContent>
           </Pagination>
         </div>
-      </TabsContent>
-    </Tabs>
   );
 }

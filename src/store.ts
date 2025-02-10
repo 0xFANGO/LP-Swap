@@ -54,7 +54,7 @@ export const useMeteOraStore = create<MeteOraSwapState>((set) => ({
   tokenxDecimals: 0,
   queryParams: {
     page: 0,
-    limit: 15,
+    limit: 10,
     hide_low_tvl: 600,
   },
   dlmmPool: null,
