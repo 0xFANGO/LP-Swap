@@ -26,8 +26,10 @@ import {
   TooltipTrigger,
 } from "./components/ui/tooltip";
 import { Badge } from "./components/ui/badge";
+import { useSolNetWork } from "./hooks/use-sol-network";
 
 const PositionInfo = () => {
+  const { buildOptimalTransaction } = useSolNetWork();
   const dlmmPool = useMeteOraStore((state) => state.dlmmPool);
   const userPositions = useMeteOraStore((state) => state.userPositions);
   const creatingPosition = useMeteOraStore((state) => state.creatingPosition);
@@ -123,7 +125,11 @@ const PositionInfo = () => {
                 owner: publicKey,
                 position,
               });
-              const confirmation = await sendTransaction(closeTx, connection);
+              const opTx = await buildOptimalTransaction(closeTx);
+              if (!opTx) {
+                return;
+              }
+              const confirmation = await sendTransaction(opTx, connection);
               await connection.confirmTransaction(confirmation);
               toast.success("Position Closed");
               getUserPositions();
@@ -166,9 +172,13 @@ const PositionInfo = () => {
       percentOfLiquidity,
       shouldClaimAndClose,
     })) as Transaction;
+    const opTx = await buildOptimalTransaction(tx);
+    if (!opTx) {
+      return;
+    }
     try {
       toast("Withdrawing...");
-      const confirmation = await sendTransaction(tx, connection);
+      const confirmation = await sendTransaction(opTx, connection);
       await connection.confirmTransaction(confirmation);
       getUserPositions();
       toast.success("Liquidity Withdrawn");

@@ -5,7 +5,6 @@ import { ArchiveIcon } from "@radix-ui/react-icons";
 import { ArrowUpDown } from "lucide-react";
 import { BinLiquidity, StrategyType } from "@meteora-ag/dlmm";
 import DecimalInput from "./components/DecimalInput";
-import { ComputeBudgetProgram, Transaction } from "@solana/web3.js";
 import { useMeteOraStore } from "./store";
 import {
   createOneSidePositions,
@@ -25,6 +24,7 @@ import { BN } from "bn.js";
 import { Keypair } from "@solana/web3.js";
 import { Skeleton } from "./components/ui/skeleton";
 import { Toaster, toast as sonnerToast } from "sonner";
+import { useSolNetWork } from "./hooks/use-sol-network";
 
 const SwapComponent: FC = () => {
   const [fromToken, setFromToken] = useState<"x" | "y">("x");
@@ -39,6 +39,7 @@ const SwapComponent: FC = () => {
     positionCost: 0,
     positionCount: 0,
   });
+  const { buildOptimalTransaction } = useSolNetWork();
   const sellingAmount = useMeteOraStore((state) => state.sellingAmount);
   const setSellingAmount = useMeteOraStore((state) => state.setSellingAmount);
   const tokenxDecimals = useMeteOraStore((state) => state.tokenxDecimals);
@@ -195,10 +196,7 @@ const SwapComponent: FC = () => {
     }
     try {
       setPopOpen(false);
-      console.time("getActiveBin");
       const actBin = await getActiveBin(dlmmPool);
-      console.timeEnd("getActiveBin");
-      console.time("createOneSidePositions");
       const totalXAmount =
         fromToken === "x"
           ? getTrueAmount(sellingAmount, tokenxDecimals)
@@ -221,10 +219,14 @@ const SwapComponent: FC = () => {
           minBinId: getMinBinId(binStep, actBin),
         },
       });
-      console.timeEnd("createOneSidePositions");
-
-      txHash.partialSign(positionKey);
-      const confirmation = await sendTransaction(txHash, connection);
+      const opTx = await buildOptimalTransaction(txHash);
+      if (!opTx) {
+        sonnerToast.error("Error creating position");
+        return;
+      }
+      opTx.sign([positionKey]);
+      const confirmation = await sendTransaction(opTx, connection);
+      console.log("confirmation", confirmation, opTx);
       sonnerToast.promise(
         async () => {
           useMeteOraStore.setState({ creatingPosition: true });
