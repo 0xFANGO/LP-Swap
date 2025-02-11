@@ -24,6 +24,7 @@ import { BN } from "bn.js";
 import { Keypair } from "@solana/web3.js";
 import { Skeleton } from "./components/ui/skeleton";
 import { Toaster, toast as sonnerToast } from "sonner";
+import { useSolNetWork } from "./hooks/use-sol-network";
 
 const SwapComponent: FC = () => {
   const [fromToken, setFromToken] = useState<"x" | "y">("x");
@@ -38,6 +39,7 @@ const SwapComponent: FC = () => {
     positionCost: 0,
     positionCount: 0,
   });
+  const { buildOptimalTransaction } = useSolNetWork();
   const sellingAmount = useMeteOraStore((state) => state.sellingAmount);
   const setSellingAmount = useMeteOraStore((state) => state.setSellingAmount);
   const tokenxDecimals = useMeteOraStore((state) => state.tokenxDecimals);
@@ -55,13 +57,12 @@ const SwapComponent: FC = () => {
     fromToken === "x"
       ? activeBin?.pricePerToken
       : String(1 / Number(activeBin?.pricePerToken));
-  const getMinBinId = (v: number[],  actBin?: BinLiquidity) => {
+  const getMinBinId = (v: number[], actBin?: BinLiquidity) => {
     if (!activeBin || !dlmmPool || !v.length) {
       return 0;
     }
     const active = actBin || activeBin;
-    const minBinId =
-      fromToken === "x" ? active.binId : active.binId - v[0];
+    const minBinId = fromToken === "x" ? active.binId : active.binId - v[0];
     return minBinId;
   };
   const getMaxBinId = (v: number[], actBin?: BinLiquidity) => {
@@ -69,8 +70,7 @@ const SwapComponent: FC = () => {
       return 0;
     }
     const active = actBin || activeBin;
-    const maxBinId =
-      fromToken === "x" ? active.binId + v[0] : active.binId;
+    const maxBinId = fromToken === "x" ? active.binId + v[0] : active.binId;
     return maxBinId;
   };
   useEffect(() => {
@@ -194,59 +194,70 @@ const SwapComponent: FC = () => {
     if (!dlmmPool || !publicKey) {
       return;
     }
-    setPopOpen(false);
-    sonnerToast.promise(
-      async () => {
-        useMeteOraStore.setState({ creatingPosition: true });
-        const actBin = await getActiveBin(dlmmPool);
-        const totalXAmount =
-          fromToken === "x"
-            ? getTrueAmount(sellingAmount, tokenxDecimals)
-            : new BN(0);
-        const totalYAmount =
-          fromToken === "x"
-            ? new BN(0)
-            : getTrueAmount(sellingAmount, tokenyDecimals);
-        const positionKey = new Keypair();
-        const txHash = await createOneSidePositions(dlmmPool, {
-          connection,
-          positionPubKey: positionKey.publicKey,
-          user: publicKey,
-          totalXAmount,
-          totalYAmount,
-          strategy: {
-            strategyType: StrategyType.SpotImBalanced,
-            maxBinId: getMaxBinId(binStep, actBin),
-            minBinId: getMinBinId(binStep, actBin),
-          },
-        });
+    try {
+      setPopOpen(false);
+      const actBin = await getActiveBin(dlmmPool);
+      const totalXAmount =
+        fromToken === "x"
+          ? getTrueAmount(sellingAmount, tokenxDecimals)
+          : new BN(0);
+      const totalYAmount =
+        fromToken === "x"
+          ? new BN(0)
+          : getTrueAmount(sellingAmount, tokenyDecimals);
+      const positionKey = new Keypair();
 
-        txHash.partialSign(positionKey);
-        const confirmation = await sendTransaction(txHash, connection);
-        await connection.confirmTransaction(confirmation);
-        // 在创建仓位后，记录selling amount和要交换的最大amount
-        const positionMap = localStorage.getItem("positionMap") || "{}";
-        const positionMapObj: {
-          [key: string]: {
-            sellingAmount: string;
-            maxOutPut: string;
-            sellingToken: string;
-          }
-        } = JSON.parse(positionMap);
-        positionMapObj[positionKey.publicKey.toString()] = {
-          sellingAmount,
-          maxOutPut,
-          sellingToken: sellingTokenName,
-        };
-        localStorage.setItem("positionMap", JSON.stringify(positionMapObj));
-        useMeteOraStore.setState({ creatingPosition: false });
-      },
-      {
-        loading: "Creating position...",
-        success: "Position created!",
-        error: "Error creating position",
+      const txHash = await createOneSidePositions(dlmmPool, {
+        connection,
+        positionPubKey: positionKey.publicKey,
+        user: publicKey,
+        totalXAmount,
+        totalYAmount,
+        strategy: {
+          strategyType: StrategyType.SpotImBalanced,
+          maxBinId: getMaxBinId(binStep, actBin),
+          minBinId: getMinBinId(binStep, actBin),
+        },
+      });
+      const opTx = await buildOptimalTransaction(txHash);
+      if (!opTx) {
+        sonnerToast.error("Error creating position");
+        return;
       }
-    );
+      opTx.sign([positionKey]);
+      const confirmation = await sendTransaction(opTx, connection);
+      console.log("confirmation", confirmation, opTx);
+      sonnerToast.promise(
+        async () => {
+          useMeteOraStore.setState({ creatingPosition: true });
+          await connection.confirmTransaction(confirmation);
+          // 在创建仓位后，记录selling amount和要交换的最大amount
+          const positionMap = localStorage.getItem("positionMap") || "{}";
+          const positionMapObj: {
+            [key: string]: {
+              sellingAmount: string;
+              maxOutPut: string;
+              sellingToken: string;
+            };
+          } = JSON.parse(positionMap);
+          positionMapObj[positionKey.publicKey.toString()] = {
+            sellingAmount,
+            maxOutPut,
+            sellingToken: sellingTokenName,
+          };
+          localStorage.setItem("positionMap", JSON.stringify(positionMapObj));
+          useMeteOraStore.setState({ creatingPosition: false });
+        },
+        {
+          loading: "Creating position...",
+          success: "Position created!",
+          error: "Error creating position",
+        }
+      );
+    } catch (e: any) {
+      console.log(e);
+      sonnerToast.error("Error creating position", e.message);
+    }
   };
 
   return (
