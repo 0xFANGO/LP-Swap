@@ -277,7 +277,7 @@ const SwapComponent: FC = () => {
         <div className="flex justify-between items-center">
           <div className="text-sm font-semibold">{sellingTokenName}</div>
           <DecimalInput
-            className="bg-transparent outline-none appearance-none placeholder-gray-500 text-2xl text-right"
+            className="bg-transparent outline-none appearance-none w-full placeholder-gray-500 text-2xl text-right"
             value={sellingAmount}
             onChange={(v) => {
               setSellingAmount(v);
