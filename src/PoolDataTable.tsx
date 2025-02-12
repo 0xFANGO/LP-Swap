@@ -28,7 +28,11 @@ import { useEffect, useState } from "react";
 import React from "react";
 import { PairInfo } from "./lib/utils/meteora";
 import BigNumber from "bignumber.js";
-import { formatNumber, parseCurrency } from "./lib/utils/meteora/money";
+import {
+  formatNumber,
+  getTokenURL,
+  parseCurrency,
+} from "./lib/utils/meteora/money";
 import {
   PaginationItems,
   PaginationNextTrigger,
@@ -36,11 +40,14 @@ import {
 } from "./components/ui/pagination";
 import SearchInput from "./components/SearchInput";
 import { useNavigate } from "react-router";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 interface Pool {
   id: string;
   name: string;
   poolCount: string;
+  mint_x?: string;
+  mint_y?: string;
   tvl: string;
   volume: string;
   feeRatio: string;
@@ -54,6 +61,8 @@ interface MeteoraPairs {
   tvl: string;
   volume: string;
   name: string;
+  mint_x: string;
+  mint_y: string;
 }
 
 interface Props {
@@ -91,10 +100,14 @@ export default function PoolDataTable({ className }: Props) {
         id,
         name: pool.name,
         poolCount,
+        mint_x: pool.pairs?.[0]?.mint_x,
+        mint_y: pool.pairs?.[0]?.mint_y,
         tvl: formatNumber(tvl),
         volume: formatNumber(volume24),
         feeRatio: `${maxFeeRadio.toFixed(2)}%`,
         poolPairs: pool.pairs?.map((pair) => ({
+          mint_x: pair.mint_x,
+          mint_y: pair.mint_y,
           name: pair.name,
           binStep: pair.bin_step,
           address: pair.address,
@@ -198,7 +211,17 @@ export default function PoolDataTable({ className }: Props) {
                     ) : (
                       <ChevronRight className="h-4 w-4" />
                     )}
-                    <span>{pool.name}</span>
+                    <span className="flex items-center">
+                      <img
+                        src={getTokenURL(pool?.mint_x || "")}
+                        className="w-6 h-6 rounded-full"
+                      />
+                      <img
+                        src={getTokenURL(pool?.mint_y || "")}
+                        className="w-6 h-6 rounded-full mr-2"
+                      />
+                      {pool.name}
+                    </span>
                     <span className="ml-2 rounded-full bg-gray-800 px-2 py-1 text-xs">
                       {pool.poolCount}
                     </span>
@@ -235,7 +258,16 @@ export default function PoolDataTable({ className }: Props) {
                     >
                       <TableCell className="border-0 w-[300px]">
                         <div className="flex items-center gap-2 pl-8">
-                          <div>{pair.name}</div>
+                          <div className="flex items-center">
+                            <img
+                              src={getTokenURL(pair?.mint_x || "")}
+                              className="w-6 h-6 rounded-full"
+                            />
+                            <img
+                              src={getTokenURL(pair?.mint_y || "")}
+                              className="w-6 h-6 rounded-full mr-2"
+                            />
+                          </div>
                           <div>
                             <span className="text-gray-400">Bin Step</span>{" "}
                             {pair.binStep}
@@ -327,7 +359,7 @@ export default function PoolDataTable({ className }: Props) {
     });
   };
   return (
-    <>
+    <ErrorBoundary>
       <div className="flex w-full pl-2 items-center space-x-1 mt-6">
         <SearchInput
           value={queryParams.search_term || ""}
@@ -416,6 +448,6 @@ export default function PoolDataTable({ className }: Props) {
           </HStack>
         </PaginationRoot>
       </div>
-    </>
+    </ErrorBoundary>
   );
 }

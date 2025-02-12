@@ -1,9 +1,11 @@
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import {
+  PublicKey,
   Transaction,
   TransactionMessage,
   VersionedTransaction,
 } from "@solana/web3.js";
+import { TOKEN_PROGRAM_ID, getTokenMetadata } from "@solana/spl-token";
 
 export const useSolNetWork = () => {
   const { connection } = useConnection();
@@ -36,5 +38,31 @@ export const useSolNetWork = () => {
     );
     return opTx;
   };
-  return { buildOptimalTransaction };
+
+  const getTokenMeta = async (mintAddress: string) => {
+    if (!publicKey) {
+      return;
+    }
+    try {
+      console.log("mintAddress:", mintAddress);
+      const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
+        publicKey,
+        {
+          programId: TOKEN_PROGRAM_ID,
+        }
+      );
+      for (const tokenAccount of tokenAccounts.value) {
+        console.log("tokenAccount:", tokenAccount);
+        // Retrieve and log the metadata pointer state
+        const metaData = await getTokenMetadata(
+          connection,
+          new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")
+        );
+        console.log("\nMetadata Pointer:", metaData);
+      }
+    } catch (error) {
+      console.log("🚀 ~ error:", error);
+    }
+  };
+  return { buildOptimalTransaction, getTokenMeta };
 };

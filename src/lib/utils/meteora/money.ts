@@ -93,3 +93,12 @@ export const formatNumber = (num: BigNumber) => {
 export const parseCurrency = (value: string): number => {
   return parseFloat(value.replace(/[$,]/g, ""));
 };
+
+export const formatMintAddress = (address: string) => {
+  if (!address) return "";
+  return `${address.slice(0, 4)}...${address.slice(-4)}`;
+};
+
+export const getTokenURL = (mintAddress: string) => {
+  return `https://img-v1.raydium.io/icon/${mintAddress}.png`;
+};

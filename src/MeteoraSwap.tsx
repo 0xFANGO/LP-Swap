@@ -36,6 +36,7 @@ import {
 } from "./components/ui/breadcrumb";
 import { Skeleton } from "./components/ui/skeleton";
 import { useNavigate, useParams } from "react-router";
+import MeteoraPoolInfo from "./MeteoraPoolInfo";
 
 const MeteoraSwap = () => {
   const {
@@ -241,6 +242,7 @@ const MeteoraSwap = () => {
               </div>
             </div>
           </div>
+          <MeteoraPoolInfo />
         </>
       );
     }

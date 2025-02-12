@@ -5,15 +5,10 @@ import ThemeProviderWrapper from "./ThemeProviderWrapper";
 import Header from "./Header";
 import { Provider } from "./components/ui/provider";
 import MeteoraPools from "./MeteoraPools";
-import {
-  BrowserRouter as Router,
-  Route,
-  Routes,
-} from "react-router";
+import { BrowserRouter as Router, Route, Routes } from "react-router";
 import MeteoraSwap from "./MeteoraSwap";
 
 const Home = () => {
-
   return (
     <ThemeProviderWrapper>
       <Provider>
