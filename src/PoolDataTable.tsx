@@ -125,7 +125,6 @@ export default function PoolDataTable({ className }: Props) {
     });
     setTotal(metaData?.total || 0);
     setTableData(formatData);
-    console.log("🚀 ~ formatData:", formatData);
   };
   useEffect(() => {
     fetchAndFormatTableData();

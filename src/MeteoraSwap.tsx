@@ -257,6 +257,7 @@ const MeteoraSwap = () => {
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink
+              className="cursor-pointer"
               onClick={() => {
                 navigate(`/`);
               }}
@@ -266,7 +267,7 @@ const MeteoraSwap = () => {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink>
+            <BreadcrumbLink className="cursor-pointer">
               {fetching ? <Skeleton className="h-4 w-10" /> : pairInfo?.name}
             </BreadcrumbLink>
           </BreadcrumbItem>

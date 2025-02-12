@@ -27,6 +27,7 @@ import {
 } from "./components/ui/tooltip";
 import { Badge } from "./components/ui/badge";
 import { useSolNetWork } from "./hooks/use-sol-network";
+import { EmptyState, VStack } from "@chakra-ui/react";
 
 const PositionInfo = () => {
   const { buildOptimalTransaction } = useSolNetWork();
@@ -269,15 +270,28 @@ const PositionInfo = () => {
     }
     if (userPositions.length === 0) {
       return (
-        <div className="flex items-center justify-center flex-col h-40">
-          <div className="w-10 h-10 bg-[#141526] flex items-center justify-center rounded-full">
-            <Search />
-          </div>
-          <div className="text-lg font-semibold mt-2">No Positions Found</div>
-          <div className="text-sm text-[#8585a1] mt-2">
-            You don't have any liquidities in this pool.{" "}
-          </div>
-        </div>
+        // <div className="flex items-center justify-center flex-col h-40">
+        //   <div className="w-10 h-10 bg-[#141526] flex items-center justify-center rounded-full">
+        //     <Search />
+        //   </div>
+        //   <div className="text-lg font-semibold mt-2">No Positions Found</div>
+        //   <div className="text-sm text-[#8585a1] mt-2">
+        //     You don't have any liquidities in this pool.{" "}
+        //   </div>
+        // </div>
+        <EmptyState.Root>
+          <EmptyState.Content>
+            <EmptyState.Indicator>
+              <Search />
+            </EmptyState.Indicator>
+            <VStack textAlign="center">
+              <EmptyState.Title className="text-xl font-semibold">No Positions Found</EmptyState.Title>
+              <EmptyState.Description>
+                You don't have any liquidities in this pool.{" "}
+              </EmptyState.Description>
+            </VStack>
+          </EmptyState.Content>
+        </EmptyState.Root>
       );
     }
 
