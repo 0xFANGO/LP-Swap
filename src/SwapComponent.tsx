@@ -25,6 +25,8 @@ import { Keypair } from "@solana/web3.js";
 import { Skeleton } from "./components/ui/skeleton";
 import { Toaster, toast as sonnerToast } from "sonner";
 import { useSolNetWork } from "./hooks/use-sol-network";
+import BinChart from "./BinChart";
+import BigNumber from "bignumber.js";
 
 const SwapComponent: FC = () => {
   const [fromToken, setFromToken] = useState<"x" | "y">("x");
@@ -50,6 +52,13 @@ const SwapComponent: FC = () => {
   const [walletBalance, setWalletBalance] = useState(0);
   const [activeBin, setActiveBin] = useState<BinLiquidity | null>(null);
   const [binStep, setBinStep] = useState<number[]>([1]);
+  const [binsInterval, setBinsInterval] = useState<BinLiquidity[]>([]);
+  const [chartBins, setChartBins] = useState<
+    {
+      price: number;
+      percent: string;
+    }[]
+  >([]);
   const [popOverOpen, setPopOpen] = useState(false);
   const [limitPrice, setLimitPrice] = useState("");
   const [limitPercentage, setLimitPercentage] = useState("");
@@ -58,31 +67,86 @@ const SwapComponent: FC = () => {
       ? activeBin?.pricePerToken
       : String(1 / Number(activeBin?.pricePerToken));
   const getMinBinId = (v: number[], actBin?: BinLiquidity) => {
-    if (!activeBin || !dlmmPool || !v.length) {
+    const active = actBin || activeBin;
+    if (!active || !dlmmPool || !v.length) {
       return 0;
     }
-    const active = actBin || activeBin;
     const minBinId = fromToken === "x" ? active.binId : active.binId - v[0];
     return minBinId;
   };
   const getMaxBinId = (v: number[], actBin?: BinLiquidity) => {
-    if (!activeBin || !dlmmPool || !v.length) {
+    const active = actBin || activeBin;
+    if (!active || !dlmmPool || !v.length) {
       return 0;
     }
-    const active = actBin || activeBin;
     const maxBinId = fromToken === "x" ? active.binId + v[0] : active.binId;
     return maxBinId;
   };
+
+  // 转换bins为图表数据
+  const convertBinsToChartData = () => {
+    if (!activeBin) {
+      return [];
+    }
+    const activePrice =
+      fromToken === "x"
+        ? Number(activeBin?.pricePerToken)
+        : 1 / Number(activeBin?.pricePerToken);
+    if (fromToken === "y") {
+      const newChart = binsInterval.slice(0, binStep[0] + 5).map((bin) => {
+        const price = 1 / Number(bin.pricePerToken);
+        return {
+          price,
+          percent: `${new BigNumber(
+            ((price - activePrice) / activePrice) * 100
+          ).toFormat(1)}%`,
+        };
+      });
+      setChartBins(newChart);
+    } else {
+      const newChart = binsInterval
+        .map((bin) => {
+          const price =
+            fromToken === "x"
+              ? Number(bin.pricePerToken)
+              : 1 / Number(bin.pricePerToken);
+          return {
+            price,
+            percent: `${new BigNumber(
+              ((price - activePrice) / activePrice) * 100
+            ).toFormat(1)}%`,
+          };
+        })
+        .slice(0, binStep[0] + 5);
+      setChartBins(newChart);
+    }
+  };
   useEffect(() => {
+    convertBinsToChartData();
+  }, [fromToken, activeBin, binsInterval]);
+  useEffect(() => {
+    const getBinsInterval = async (actBin: BinLiquidity) => {
+      if (!dlmmPool) {
+        return;
+      }
+      const minBin = getMinBinId([100], actBin);
+      const maxBin = getMaxBinId([100], actBin);
+      const bins = await dlmmPool.getBinsBetweenLowerAndUpperBound(
+        minBin,
+        maxBin
+      );
+      setBinsInterval(fromToken === "x" ? bins.bins : bins.bins.reverse());
+    };
     const intervalId = setInterval(async () => {
       if (!dlmmPool) {
         return;
       }
       const activeBin = await getActiveBin(dlmmPool);
+      getBinsInterval(activeBin);
       setActiveBin(activeBin);
     }, 3000); // 每3秒轮询一次
     return () => clearInterval(intervalId); // 清除定时器
-  }, [dlmmPool]); // 每次 dlmmPool 改变时触发 useEffect
+  }, [dlmmPool, fromToken]); // 每次 dlmmPool 改变时触发 useEffect
   const handleChangeBinStep = async (v: number[]) => {
     if (!activeBin || !dlmmPool || !v.length) {
       return;
@@ -160,7 +224,7 @@ const SwapComponent: FC = () => {
     fromToken === "x" ? getToken0Name(pairInfo) : getToken1Name(pairInfo);
   const buyingTokenName =
     fromToken === "x" ? getToken1Name(pairInfo) : getToken0Name(pairInfo);
-  const handleSwitchToken = () => {
+  const handleSwitchToken = async () => {
     setFromToken(fromToken === "x" ? "y" : "x");
   };
   const handleQuote = async () => {
@@ -338,6 +402,18 @@ const SwapComponent: FC = () => {
               step={1}
               className="w-full"
             />
+            <div className="text-xs mt-4 text-gray-500">
+              this will create Positions at
+              <span className="text-base font-semibold text-white">
+                {" "}
+                [{parseFloat(activePrice || "0").toFixed(6)},{limitPrice}]
+              </span>
+            </div>
+            {chartBins.length ? (
+              <div className="w-[500px] h-[200px] mt-4">
+                <BinChart data={chartBins} />
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
