@@ -25,7 +25,7 @@ import { Keypair } from "@solana/web3.js";
 import { Skeleton } from "./components/ui/skeleton";
 import { Toaster, toast as sonnerToast } from "sonner";
 import { useSolNetWork } from "./hooks/use-sol-network";
-import BinChart from "./BinChart";
+import BinChart, { BARS_ONLY_FOR_SHOW } from "./BinChart";
 import BigNumber from "bignumber.js";
 
 const SwapComponent: FC = () => {
@@ -93,15 +93,17 @@ const SwapComponent: FC = () => {
         ? Number(activeBin?.pricePerToken)
         : 1 / Number(activeBin?.pricePerToken);
     if (fromToken === "y") {
-      const newChart = binsInterval.slice(0, binStep[0] + 5).map((bin) => {
-        const price = 1 / Number(bin.pricePerToken);
-        return {
-          price,
-          percent: `${new BigNumber(
-            ((price - activePrice) / activePrice) * 100
-          ).toFormat(1)}%`,
-        };
-      });
+      const newChart = binsInterval
+        .slice(0, binStep[0] + BARS_ONLY_FOR_SHOW + 1)
+        .map((bin) => {
+          const price = 1 / Number(bin.pricePerToken);
+          return {
+            price,
+            percent: `${new BigNumber(
+              ((price - activePrice) / activePrice) * 100
+            ).toFormat(2)}%`,
+          };
+        });
       setChartBins(newChart);
     } else {
       const newChart = binsInterval
@@ -114,10 +116,10 @@ const SwapComponent: FC = () => {
             price,
             percent: `${new BigNumber(
               ((price - activePrice) / activePrice) * 100
-            ).toFormat(1)}%`,
+            ).toFormat(2)}%`,
           };
         })
-        .slice(0, binStep[0] + 5);
+        .slice(0, binStep[0] + BARS_ONLY_FOR_SHOW + 1);
       setChartBins(newChart);
     }
   };
@@ -402,17 +404,33 @@ const SwapComponent: FC = () => {
               step={1}
               className="w-full"
             />
-            <div className="text-xs mt-4 text-gray-500">
+            <div className="text-xs mt-4 text-gray-500 flex items-center">
               this will create Positions at
-              <span className="text-base font-semibold text-white">
-                {" "}
-                [{parseFloat(activePrice || "0").toFixed(6)},{limitPrice}]
+              <span className="text-base font-semibold text-white ml-2">
+                {activeBin && limitPrice ? (
+                  <>
+                    {" "}
+                    [{parseFloat(activePrice || "0").toFixed(6)},{limitPrice}]
+                  </>
+                ) : (
+                  <Skeleton className="w-10 h-4" />
+                )}
               </span>
             </div>
             {chartBins.length ? (
-              <div className="w-[500px] h-[200px] mt-4">
-                <BinChart data={chartBins} />
-              </div>
+              <>
+                <div className="text-xs mt-4 text-gray-500 flex items-start">
+                  Liquidity will be distributed across the following bins:
+                </div>
+                <div className="w-[500px] h-[200px] mt-4">
+                  <BinChart
+                    data={chartBins}
+                    onBarClick={(data) => {
+                      setBinStep([data?.index || 0]);
+                    }}
+                  />
+                </div>
+              </>
             ) : null}
           </div>
         </div>
