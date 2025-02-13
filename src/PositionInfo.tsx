@@ -28,6 +28,7 @@ import {
 import { Badge } from "./components/ui/badge";
 import { useSolNetWork } from "./hooks/use-sol-network";
 import { EmptyState, VStack } from "@chakra-ui/react";
+import { Progress } from "./components/ui/progress";
 
 const PositionInfo = () => {
   const { buildOptimalTransaction } = useSolNetWork();
@@ -270,22 +271,15 @@ const PositionInfo = () => {
     }
     if (userPositions.length === 0) {
       return (
-        // <div className="flex items-center justify-center flex-col h-40">
-        //   <div className="w-10 h-10 bg-[#141526] flex items-center justify-center rounded-full">
-        //     <Search />
-        //   </div>
-        //   <div className="text-lg font-semibold mt-2">No Positions Found</div>
-        //   <div className="text-sm text-[#8585a1] mt-2">
-        //     You don't have any liquidities in this pool.{" "}
-        //   </div>
-        // </div>
         <EmptyState.Root>
           <EmptyState.Content>
             <EmptyState.Indicator>
               <Search />
             </EmptyState.Indicator>
             <VStack textAlign="center">
-              <EmptyState.Title className="text-xl font-semibold">No Positions Found</EmptyState.Title>
+              <EmptyState.Title className="text-xl font-semibold">
+                No Positions Found
+              </EmptyState.Title>
               <EmptyState.Description>
                 You don't have any liquidities in this pool.{" "}
               </EmptyState.Description>
@@ -348,15 +342,16 @@ const PositionInfo = () => {
                         </div>
                       ) : (
                         position.positionData.sellingAmount && (
-                          <>
-                            <div className="font-semibold">
+                          <div className="flex flex-col items-start gap-2">
+                            <div className="font-semibold flex items-center">
                               {calculatePercent(position).toFixed(2)}%{" "}
                               {position.positionData.sellingToken}
+                              <Badge variant="secondary" className="ml-2">
+                                Swapped
+                              </Badge>
                             </div>
-                            <Badge variant="secondary" className="mt-1">
-                              Swapped
-                            </Badge>
-                          </>
+                            <Progress value={calculatePercent(position)} />
+                          </div>
                         )
                       )}
                     </div>
