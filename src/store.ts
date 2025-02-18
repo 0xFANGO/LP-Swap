@@ -13,6 +13,7 @@ export type UserPosition = {
     sellingAmount?: string;
     sellingToken?: string;
     maxOutPut?: string;
+    index?: number;
   };
   version: PositionVersion;
 };

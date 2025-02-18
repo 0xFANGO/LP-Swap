@@ -29,6 +29,8 @@ import { Badge } from "./components/ui/badge";
 import { useSolNetWork } from "./hooks/use-sol-network";
 import { EmptyState, VStack } from "@chakra-ui/react";
 import { Progress } from "./components/ui/progress";
+import { getAllUserPositions } from "./services/positionService";
+import { useQuery } from "@tanstack/react-query";
 
 const PositionInfo = () => {
   const { buildOptimalTransaction } = useSolNetWork();
@@ -41,21 +43,43 @@ const PositionInfo = () => {
   const tokenxDecimals = useMeteOraStore((state) => state.tokenxDecimals);
   const tokenyDecimals = useMeteOraStore((state) => state.tokenyDecimals);
   const alertAtPercent = useMeteOraStore((state) => state.alertAtPercent);
+  const { publicKey, sendTransaction } = useWallet();
+  const allPositions = useQuery({
+    queryKey: ["publicKey", publicKey],
+    queryFn: async () => {
+      if (!publicKey) {
+        return [];
+      }
+      const allPos =  await getAllUserPositions(publicKey.toBase58());
+      return allPos?.operations || [];
+    },
+    enabled: !!publicKey,
+  });
   const autoAlertAndRemove = useMeteOraStore(
     (state) => state.autoAlertAndRemove
   );
   const withdrawingPositionMap = useRef<{
     [key: string]: boolean;
   }>({});
-  const { publicKey, sendTransaction } = useWallet();
   const { connection } = useConnection();
   const getUserPositions = async () => {
     if (!dlmmPool || !publicKey) {
       return [];
     }
+    const allPosInfo =  await allPositions.refetch();
     const positions = await dlmmPool.getPositionsByUserAndLbPair(publicKey);
-    const positionMap = localStorage.getItem("positionMap");
-    const positionMapObj = positionMap ? JSON.parse(positionMap) : {};
+    const positionMap = allPosInfo.data?.reduce((acc, operation) => {
+      return {
+        ...acc,
+        [operation.positionId]: {
+          sellingAmount: operation.sellingAmount,
+          maxOutPut: operation.buyingAmount,
+          sellingToken: operation.sellToken,
+          index: operation.id,
+        },
+      };
+    }, {});
+    const positionMapObj: any = positionMap ? positionMap : {};
     const formatPositions: UserPosition[] = positions.userPositions.map(
       (position) => {
         const additionPositionData =
@@ -242,7 +266,7 @@ const PositionInfo = () => {
       ((Number(position.positionData.sellingAmount) - sellingTokenAmount) /
         Number(position.positionData.sellingAmount)) *
       100;
-    return percentage;
+    return percentage <=0 ? 0 : percentage;
   };
   const getMarketPrice = (position: UserPosition) => {
     const { minPositionPrice, maxPositionPrice } = getPositionInfo(position);

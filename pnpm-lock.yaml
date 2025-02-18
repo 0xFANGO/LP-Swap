@@ -125,6 +125,9 @@ importers:
       '@solana/web3.js':
         specifier: ^1.98.0
         version: 1.98.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+      '@tanstack/react-query':
+        specifier: ^5.66.5
+        version: 5.66.5(react@18.3.1)
       '@tanstack/react-table':
         specifier: ^8.20.6
         version: 8.20.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -152,6 +155,9 @@ importers:
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.4.7
       embla-carousel-react:
         specifier: ^8.5.2
         version: 8.5.2(react@18.3.1)
@@ -213,6 +219,9 @@ importers:
       '@eslint/js':
         specifier: ^9.17.0
         version: 9.19.0
+      '@tanstack/eslint-plugin-query':
+        specifier: ^5.66.1
+        version: 5.66.1(eslint@9.19.0(jiti@2.4.2))(typescript@5.6.3)
       '@types/react':
         specifier: ^18.3.18
         version: 18.3.18
@@ -2431,6 +2440,12 @@ packages:
     peerDependencies:
       '@solana/web3.js': ^1.95.3
 
+  '@solana/spl-token-metadata@0.1.6':
+    resolution: {integrity: sha512-7sMt1rsm/zQOQcUWllQX9mD2O6KhSAtY1hFR2hfFwgqfFWzSY9E9GDvFVNYUI1F0iQKcm6HmePU9QbKRXTEBiA==}
+    engines: {node: '>=16'}
+    peerDependencies:
+      '@solana/web3.js': ^1.95.3
+
   '@solana/spl-token@0.4.12':
     resolution: {integrity: sha512-K6CxzSoO1vC+WBys25zlSDaW0w4UFZO/IvEZquEI35A/PjqXNQHeVigmDCZYEJfESvYarKwsr8tYr/29lPtvaw==}
     engines: {node: '>=16'}
@@ -2508,6 +2523,19 @@ packages:
 
   '@swc/helpers@0.5.15':
     resolution: {integrity: sha512-JQ5TuMi45Owi4/BIMAJBoSQoOJu12oOk/gADqlcUL9JEdHB8vyjUSsxqeNXnmXHjYKMi2WcYtezGEEhqUI/E2g==}
+
+  '@tanstack/eslint-plugin-query@5.66.1':
+    resolution: {integrity: sha512-pYMVTGgJ7yPk9Rm6UWEmbY6TX0EmMmxJqYkthgeDCwEznToy2m+W928nUODFirtZBZlhBsqHy33LO0kyTlgf0w==}
+    peerDependencies:
+      eslint: ^8.57.0 || ^9.0.0
+
+  '@tanstack/query-core@5.66.4':
+    resolution: {integrity: sha512-skM/gzNX4shPkqmdTCSoHtJAPMTtmIJNS0hE+xwTTUVYwezArCT34NMermABmBVUg5Ls5aiUXEDXfqwR1oVkcA==}
+
+  '@tanstack/react-query@5.66.5':
+    resolution: {integrity: sha512-D9aABj3/aFeNmifsdllh5O3hPyA8gUnZ1jAV8MjODQ7blirfAyGed9NjAnm8rgEdr1wChyjTT738ij3vY0EREQ==}
+    peerDependencies:
+      react: ^18 || ^19
 
   '@tanstack/react-table@8.20.6':
     resolution: {integrity: sha512-w0jluT718MrOKthRcr2xsjqzx+oEM7B7s/XXyfs19ll++hlId3fjTm+B2zrR3ijpANpkzBAr15j1XGVOMxpggQ==}
@@ -7975,6 +8003,7 @@ snapshots:
     dependencies:
       '@coral-xyz/anchor': 0.30.1(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       '@solana/spl-token': 0.4.12(@solana/web3.js@1.98.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.6.3)(utf-8-validate@5.0.10)
+      '@solana/spl-token-metadata': 0.1.6(@solana/web3.js@1.98.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.6.3)
       '@solana/web3.js': 1.98.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       bs58: 6.0.0
       dotenv: 16.4.7
@@ -8100,11 +8129,20 @@ snapshots:
       - fastestsmallesttextencoderdecoder
       - typescript
 
+  '@solana/spl-token-metadata@0.1.6(@solana/web3.js@1.98.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.6.3)':
+    dependencies:
+      '@solana/codecs': 2.0.0-rc.1(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.6.3)
+      '@solana/web3.js': 1.98.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+    transitivePeerDependencies:
+      - fastestsmallesttextencoderdecoder
+      - typescript
+
   '@solana/spl-token@0.4.12(@solana/web3.js@1.98.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.6.3)(utf-8-validate@5.0.10)':
     dependencies:
       '@solana/buffer-layout': 4.0.1
       '@solana/buffer-layout-utils': 0.2.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       '@solana/spl-token-group': 0.0.7(@solana/web3.js@1.98.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.6.3)
+      '@solana/spl-token-metadata': 0.1.6(@solana/web3.js@1.98.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.6.3)
       '@solana/web3.js': 1.98.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       buffer: 6.0.3
     transitivePeerDependencies:
@@ -8244,6 +8282,21 @@ snapshots:
   '@swc/helpers@0.5.15':
     dependencies:
       tslib: 2.8.1
+
+  '@tanstack/eslint-plugin-query@5.66.1(eslint@9.19.0(jiti@2.4.2))(typescript@5.6.3)':
+    dependencies:
+      '@typescript-eslint/utils': 8.22.0(eslint@9.19.0(jiti@2.4.2))(typescript@5.6.3)
+      eslint: 9.19.0(jiti@2.4.2)
+    transitivePeerDependencies:
+      - supports-color
+      - typescript
+
+  '@tanstack/query-core@5.66.4': {}
+
+  '@tanstack/react-query@5.66.5(react@18.3.1)':
+    dependencies:
+      '@tanstack/query-core': 5.66.4
+      react: 18.3.1
 
   '@tanstack/react-table@8.20.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:

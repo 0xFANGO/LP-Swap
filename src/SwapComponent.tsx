@@ -27,6 +27,7 @@ import { Toaster, toast as sonnerToast } from "sonner";
 import { useSolNetWork } from "./hooks/use-sol-network";
 import BinChart, { BARS_ONLY_FOR_SHOW } from "./BinChart";
 import BigNumber from "bignumber.js";
+import { createPosition } from "./services/positionService";
 
 const SwapComponent: FC = () => {
   const [fromToken, setFromToken] = useState<"x" | "y">("x");
@@ -298,20 +299,33 @@ const SwapComponent: FC = () => {
           useMeteOraStore.setState({ creatingPosition: true });
           await connection.confirmTransaction(confirmation);
           // 在创建仓位后，记录selling amount和要交换的最大amount
-          const positionMap = localStorage.getItem("positionMap") || "{}";
-          const positionMapObj: {
-            [key: string]: {
-              sellingAmount: string;
-              maxOutPut: string;
-              sellingToken: string;
-            };
-          } = JSON.parse(positionMap);
-          positionMapObj[positionKey.publicKey.toString()] = {
-            sellingAmount,
-            maxOutPut,
-            sellingToken: sellingTokenName,
-          };
-          localStorage.setItem("positionMap", JSON.stringify(positionMapObj));
+          await createPosition({
+            userAddress: publicKey.toBase58(),
+            gasAmount: quoteCreateInfo.positionCount * 0.00005,
+            rentCost: quoteCreateInfo.positionCount * quoteCreateInfo.positionCost,
+            pairId: pairInfo?.address || "",
+            networkFee: quoteCreateInfo.positionCount * 0.00005,
+            positionId: positionKey.publicKey.toBase58(),
+            sellToken: sellingTokenName,
+            buyingToken: buyingTokenName,
+            sellingAmount: Number(sellingAmount),
+            buyingAmount: Number(maxOutPut),
+            status: "MONITORING",
+          }); // 创建仓位
+          // const positionMap = localStorage.getItem("positionMap") || "{}";
+          // const positionMapObj: {
+          //   [key: string]: {
+          //     sellingAmount: string;
+          //     maxOutPut: string;
+          //     sellingToken: string;
+          //   };
+          // } = JSON.parse(positionMap);
+          // positionMapObj[positionKey.publicKey.toString()] = {
+          //   sellingAmount,
+          //   maxOutPut,
+          //   sellingToken: sellingTokenName,
+          // };
+          // localStorage.setItem("positionMap", JSON.stringify(positionMapObj));
           useMeteOraStore.setState({ creatingPosition: false });
         },
         {
