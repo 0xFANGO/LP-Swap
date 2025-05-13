@@ -1,50 +1,105 @@
-# React + TypeScript + Vite
+## LPSwap Technical Documentation
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+### Project Overview
 
-Currently, two official plugins are available:
+LPSwap is a hackathon project designed to leverage the concentrated liquidity features of V3-style liquidity pools to provide **zero-slippage, zero-fee** token swaps. The core idea is to execute swaps entirely within a narrow price range of the liquidity pool, effectively bypassing price impact and trading fees.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Currently, LPSwap supports **Meteora's DLMM (Dynamic Liquidity Market Maker) pools** on Solana. Meteora DLMM divides liquidity across discrete price bins, allowing swaps within a single bin to happen at a fixed price, similar to limit orders on an order book. This enables LPSwap to simulate a centralized exchange-like experience in a fully decentralized environment.
 
-## Expanding the ESLint configuration
+In addition, the design allows users to act as temporary liquidity providers. Because of this, any fees collected during the swap are returned to the user, effectively making the swap fee-free. On testnet, the system also assumes zero gas and signature costs, providing a near-zero cost swap experience.
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+---
 
-- Configure the top-level `parserOptions` property like this:
+### Architecture Overview
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+LPSwap uses a **frontend-driven architecture** with no backend required. The system consists of the following components:
+
+* **Frontend Application (React + TypeScript)**: Hosts the UI and main logic. Integrates the `@meteora-ag/dlmm` SDK to interact directly with on-chain DLMM pools.
+
+* **User Wallet (e.g., Phantom)**: Connected via Solana Wallet Adapter. Handles transaction signing and provides user authentication.
+
+* **Meteora DLMM SDK**: Facilitates interaction with DLMM pools. Exposes methods for retrieving pool information, creating LP positions, adding/removing liquidity, and simulating swaps.
+
+* **Solana Smart Contracts**: The DLMM pools themselves are on-chain programs. The frontend uses the SDK to build and send transactions to these programs, executing the actual swap logic on-chain.
+
+This setup ensures a **trustless, backend-free, and efficient** trading experience. All transactions are user-initiated and executed directly on Solana.
+
+---
+
+### Workflow
+
+1. **Pool Selection**: Users choose a DLMM pool (e.g., SOL/USDC) from a list fetched via Meteora’s API.
+
+2. **Initialize Pool Info**: The frontend retrieves bin data and current market price via the SDK (`DLMM.create(...)`).
+
+3. **User Input**: Users enter the amount and token direction (e.g., sell SOL to get USDC).
+
+4. **Bin Strategy Calculation**: Based on the current active bin and user input, the frontend selects a narrow range (e.g., \[current bin, current bin+1]) to contain the swap.
+
+5. **Create LP Position (One-Sided Liquidity)**:
+
+```ts
+const tx = await dlmmPool.initializePositionAndAddLiquidityByStrategy({
+  user: walletPublicKey,
+  positionPubKey: new Keypair().publicKey,
+  totalXAmount: amountToSellX,
+  totalYAmount: new BN(0),
+  strategy: { strategyType: StrategyType.Spot, minBinId, maxBinId }
+});
+await sendTransaction(tx, connection);
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+6. **Zero-Slippage Execution**: If the swap occurs entirely within the current bin, the price remains constant.
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+7. **Position Monitoring**: The frontend periodically checks the user’s positions to track swap progress.
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
+8. **Withdraw Liquidity**:
+
+```ts
+const removeTx = await dlmmPool.removeLiquidity({
+  position: positionPubKey,
+  user: walletPublicKey,
+  fromBinId: strategy.minBinId,
+  toBinId: strategy.maxBinId,
+  bps: new BN(10000),
+  shouldClaimAndClose: true
+});
+await sendTransaction(removeTx, connection);
 ```
+
+9. **Swap Completed**: The user receives their target token, and the temporary LP position is closed automatically.
+
+---
+
+### Innovations
+
+* **Slippage-Free Swaps**: By providing one-sided liquidity in a single price bin, users bypass traditional AMM price impact.
+
+* **Zero Fees**: Users earn back swap fees as LPs, and testnet operation assumes zero gas/signature cost.
+
+* **Fully Frontend-Driven**: All logic runs in the browser, no backend or relayer required.
+
+---
+
+### Technical Details
+
+* **Pool List Component**: `PoolDataTable` fetches DLMM pools and displays them.
+* **Swap Component**: `SwapComponent` handles user input, pool selection, and swap execution.
+* **State Management**: Uses Zustand (`useMeteOraStore`) to manage selected pool, user input, and transaction state.
+* **SDK Usage**:
+
+  * `DLMM.create` to init pool handle
+  * `getActiveBin` to find the best bin
+  * `initializePositionAndAddLiquidityByStrategy` to add liquidity
+  * `removeLiquidity` to withdraw and close position
+* **Position Watcher**: `PositionInfo` polls positions and triggers auto-withdrawal when swap completes.
+
+---
+
+### Roadmap
+
+1. **AI Bin Strategy**: Train a model to automatically select optimal bin ranges based on liquidity, price history, and volatility.
+
+2. **Backend Relayer & Auto-Signer**: Introduce an optional backend to monitor and execute transactions automatically after initial user authorization. Enables gasless, signature-free, "one-click" swaps.
+
+LPSwap aims to deliver a CeFi-like swap experience with the security and transparency of DeFi. Future iterations will continue to optimize performance, automation, and intelligence in DeFi trading.
