@@ -12,7 +12,7 @@ import "@solana/wallet-adapter-react-ui/styles.css";
 interface WalletProviderWrapperProps {
   children: ReactNode;
 }
-
+console.log("CUSTOM_RPC0", CUSTOM_RPC0, import.meta.env);
 const WalletProviderWrapper: FC<WalletProviderWrapperProps> = ({
   children,
 }) => {

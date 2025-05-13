@@ -88,7 +88,8 @@ export const quoteCreatePosition = async (
   return quote;
 };
 
-export const createOneSidePositions = async (
+export const 
+createOneSidePositions = async (
   dlmmPool: DLMM,
   params: {
     connection: Connection;
@@ -130,7 +131,8 @@ export const removePositionLiquidity = async (
   const removeLiquidityTx = await dlmmPool.removeLiquidity({
     position: positionPub,
     user: userPub,
-    binIds: binIdsToRemove,
+    fromBinId: binIdsToRemove[0],
+    toBinId: binIdsToRemove[binIdsToRemove.length - 1],
     bps: new BN(100 * percentOfLiquidity), // 100% of liquidity
     shouldClaimAndClose: shouldClaimAndClose, // should claim swap fee and close position together
   });
