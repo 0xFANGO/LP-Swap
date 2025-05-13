@@ -1,40 +1,86 @@
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import {
+  ComputeBudgetProgram,
   Transaction,
   TransactionMessage,
   VersionedTransaction,
+  Signer,
 } from "@solana/web3.js";
+
+export type OptimalTransactionResult = {
+  opTx: VersionedTransaction;
+  blockhash: string;
+  lastValidBlockHeight: number;
+  optimalUnits: number;
+};
 
 export const useSolNetWork = () => {
   const { connection } = useConnection();
   const { publicKey } = useWallet();
 
-  const buildOptimalTransaction = async (transaction: Transaction) => {
+  const buildOptimalTransaction = async (
+    transaction: Transaction,
+    signers: Signer[] = [],
+    cuBufferMultiplier = 1.5,
+    microLamports = 10000
+  ): Promise<OptimalTransactionResult | undefined> => {
     if (!publicKey) {
       return;
     }
-    const recentBlockhash = await connection.getLatestBlockhash();
-    // const [microLamports, simulateRes] = await Promise.all([
-    //   100 /* Get optimal priority fees - https://solana.com/developers/guides/advanced/how-to-use-priority-fees*/,
-    //   connection.simulateTransaction(transaction),
-    // ]);
+    
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
 
-    // const units = simulateRes.value.unitsConsumed || 0;
-    // const limitTx = ComputeBudgetProgram.setComputeUnitLimit({
-    //   units: units, // 提高 CU 限制，提高优先级
-    // });
-    // const priceTx = ComputeBudgetProgram.setComputeUnitPrice({
-    //   microLamports, // 提高 CU 价格，提高优先级
-    // });
-    const pTx = new Transaction();
-    const opTx = new VersionedTransaction(
-      new TransactionMessage({
-        instructions: pTx.instructions.concat(transaction.instructions),
-        recentBlockhash: recentBlockhash.blockhash,
-        payerKey: publicKey,
-      }).compileToV0Message([])
+    // 1. 清理掉旧的 ComputeBudget 指令
+    const filteredInstructions = transaction.instructions.filter(
+      (ix) => !ix.programId.equals(ComputeBudgetProgram.programId)
     );
-    return opTx;
+    console.log("filteredInstructions", filteredInstructions);
+    // 2. 先用旧指令做一次 simulate
+    const simMessageV0 = new TransactionMessage({
+      payerKey: publicKey,
+      recentBlockhash: blockhash,
+      instructions: filteredInstructions,
+    }).compileToV0Message();
+    const simTxV0 = new VersionedTransaction(simMessageV0);
+
+    const simResult = await connection.simulateTransaction(simTxV0, {
+      // sigVerify: true,
+    });
+
+    if (simResult.value.err) {
+      console.error("Simulation failed:", simResult.value.err);
+      throw new Error(`Simulation Error: ${JSON.stringify(simResult.value.err)}`);
+    }
+
+    const consumedCU = simResult.value.unitsConsumed || 200_000;
+    const optimalUnits = Math.min(Math.ceil(consumedCU * cuBufferMultiplier), 1_400_000);
+
+    // 3. 构建最终含有 ComputeBudget 的指令
+    const newComputeLimitIx = ComputeBudgetProgram.setComputeUnitLimit({
+      units: optimalUnits,
+    });
+    const newComputePriceIx = ComputeBudgetProgram.setComputeUnitPrice({
+      microLamports,
+    });
+
+    const finalInstructions = [
+      newComputeLimitIx,
+      newComputePriceIx,
+      ...filteredInstructions,
+    ];
+
+    const finalTxMessage = new TransactionMessage({
+      payerKey: publicKey,
+      recentBlockhash: blockhash,
+      instructions: finalInstructions,
+    }).compileToV0Message();
+
+    const opTx = new VersionedTransaction(finalTxMessage);
+    
+    // 为最终交易添加签名
+    opTx.sign(signers);
+
+    return { opTx, blockhash, lastValidBlockHeight, optimalUnits };
   };
 
   return { buildOptimalTransaction };

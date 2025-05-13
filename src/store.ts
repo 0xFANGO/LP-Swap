@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { PairInfo } from "./lib/utils/meteora";
 import DLMM, {
-  LbPosition,
   PositionData,
   PositionVersion,
 } from "@meteora-ag/dlmm";
@@ -40,6 +39,8 @@ interface MeteOraSwapState {
   dlmmPool: DLMM | null;
   sellingAmount: string;
   userPositions: UserPosition[];
+  mockUserPositions: UserPosition[];
+  useMockData: boolean;
   creatingPosition: boolean;
   alertAtPercent: number;
   autoAlertAndRemove: boolean;
@@ -56,6 +57,8 @@ interface MeteOraSwapState {
   setSellingAmount: (sellingAmount: string) => void;
   setDLMMPool: (dlmmPool: DLMM) => void;
   setUserPositions: (userPositions: UserPosition[]) => void;
+  setUseMockData: (useMockData: boolean) => void;
+  setMockUserPositions: (mockUserPositions: UserPosition[]) => void;
 }
 
 export const useMeteOraStore = create<MeteOraSwapState>((set) => ({
@@ -76,6 +79,8 @@ export const useMeteOraStore = create<MeteOraSwapState>((set) => ({
   tokenyDecimals: 0,
   sellingAmount: "",
   userPositions: [],
+  mockUserPositions: [],
+  useMockData: false,
   creatingPosition: false,
   alertAtPercent: 100,
   autoAlertAndRemove: true,
@@ -84,5 +89,10 @@ export const useMeteOraStore = create<MeteOraSwapState>((set) => ({
   setPairInfo: (pairInfo: PairInfo) => set({ pairInfo }),
   setTokenxDecimals: (tokenxDecimals: number) => set({ tokenxDecimals }),
   setTokenyDecimals: (tokenyDecimals: number) => set({ tokenyDecimals }),
-  setUserPositions: (userPositions: LbPosition[]) => set({ userPositions }),
+  setUserPositions: (userPositions: UserPosition[]) => {
+    if (useMeteOraStore.getState().useMockData) return;
+    set({ userPositions });
+  },
+  setUseMockData: (useMockData: boolean) => set({ useMockData }),
+  setMockUserPositions: (mockUserPositions: UserPosition[]) => set({ mockUserPositions, userPositions: mockUserPositions }),
 }));
