@@ -1,4 +1,10 @@
-## LPSwap Technical Documentation
+## LPSwap 
+
+### Operation Guide Video
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/ItMcPKfAtd0" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+---
 
 ### Project Overview
 
@@ -28,7 +34,7 @@ This setup ensures a **trustless, backend-free, and efficient** trading experien
 
 ### Workflow
 
-1. **Pool Selection**: Users choose a DLMM pool (e.g., SOL/USDC) from a list fetched via Meteora’s API.
+1. **Pool Selection**: Users choose a DLMM pool (e.g., SOL/USDC) from a list fetched via Meteora's API.
 
 2. **Initialize Pool Info**: The frontend retrieves bin data and current market price via the SDK (`DLMM.create(...)`).
 
@@ -51,7 +57,7 @@ await sendTransaction(tx, connection);
 
 6. **Zero-Slippage Execution**: If the swap occurs entirely within the current bin, the price remains constant.
 
-7. **Position Monitoring**: The frontend periodically checks the user’s positions to track swap progress.
+7. **Position Monitoring**: The frontend periodically checks the user's positions to track swap progress.
 
 8. **Withdraw Liquidity**:
 
