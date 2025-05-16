@@ -1,5 +1,6 @@
 import { BoxReveal } from "@/components/ui/box-reveal";
 import { ExternalLink } from "lucide-react";
+// import logo from "@/public/logo.png";
 import {
   Tooltip,
   TooltipContent,
@@ -11,8 +12,8 @@ function LPSwap() {
   return (
     <div className="pt-1 mx-auto">
       <BoxReveal boxColor={"#5046e6"} duration={0.5}>
-        <p className="text-[3.5rem] font-semibold">
-          LP Swap<span className="text-[#512da8]">.</span>
+        <p className="text-[3.5rem] font-semibold flex items-center">
+          <img src="/logo.png" alt="logo" className="w-[3.5rem] h-[3.5rem] mr-2" /> LP Swap<span className="text-[#512da8]">.</span>
         </p>
       </BoxReveal>
       <BoxReveal boxColor={"#512da8"} duration={0.5}>
